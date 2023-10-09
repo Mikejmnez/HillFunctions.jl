@@ -3,6 +3,11 @@ uuid = "515440f5-9b45-477f-8bae-317e58dd4532"
 authors = ["Miguel A. Jimenez-Urias"]
 version = "1.0.0-DEV"
 
+[deps]
+IJulia = "7073ff75-c697-5162-941a-fcdaad2a7d2a"
+Plots = "91a5bcdd-55d7-5caf-9e0b-520d859cae80"
+Revise = "295af30f-e4ad-537b-8983-00126c2a3abe"
+
 [compat]
 julia = "1.9"
 
