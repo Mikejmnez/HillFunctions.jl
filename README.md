@@ -25,5 +25,5 @@ subjet to the boundary conditions
 \left.\phi_{2n+2}\right|_{y=0} = \left.\phi_{2n+2}\right|_{y=\pi} = 0
 ```
 
-The function $U(2y)$ is an integrable and periodic.
+The function $U(2y)$ is an integrable and periodic, and $q$ is a purely imaginary parameter.
 
