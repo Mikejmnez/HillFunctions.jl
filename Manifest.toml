@@ -2,7 +2,7 @@
 
 julia_version = "1.10.2"
 manifest_format = "2.0"
-project_hash = "b6dc74b2dbb1220881581bc332cdb9a9cbec1528"
+project_hash = "2a0053a5cfdccf911f06e6236c50b2b8feacaf10"
 
 [[deps.ArbNumerics]]
 deps = ["Arb_jll", "FLINT_jll", "GMP_jll", "GenericLinearAlgebra", "Libdl", "LinearAlgebra", "MPFR_jll", "Printf", "Random", "Readables", "SpecialFunctions"]
@@ -248,6 +248,12 @@ deps = ["LinearAlgebra", "Printf", "Random", "libblastrampoline_jll"]
 git-tree-sha1 = "02be7066f936af6b04669f7c370a31af9036c440"
 uuid = "14197337-ba66-59df-a3e3-ca00e7dcff7a"
 version = "0.3.11"
+
+[[deps.GenericSchur]]
+deps = ["LinearAlgebra", "Printf"]
+git-tree-sha1 = "fb69b2a645fa69ba5f474af09221b9308b160ce6"
+uuid = "c145ed77-6b09-5dd9-b285-bf645a82121e"
+version = "0.5.3"
 
 [[deps.Gettext_jll]]
 deps = ["Artifacts", "CompilerSupportLibraries_jll", "JLLWrappers", "Libdl", "Libiconv_jll", "Pkg", "XML2_jll"]
