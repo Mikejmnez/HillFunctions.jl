@@ -73,80 +73,129 @@ function odd_matrix(N::Integer, q, alphas::AbstractVector)
     return B
 end
 
-# Internal sorting rule
+# --------------------------
+# Symmetry types + pipeline
+# --------------------------
+
+abstract type Symmetry end
+struct Even <: Symmetry end
+struct Odd  <: Symmetry end
+
+export Even, Odd
+
+# Sorting rule: increasing real part, then imag part (negative imag first), then |λ|
 _sortperm(vals) = sortperm(vals; by = λ -> (real(λ), imag(λ), abs(λ)))
+
+# Build dense matrix for eigensolve (N is small; dense is fine)
+_build_dense(::Type{Even}, N::Integer, q, alphas) = Matrix(even_matrix(N, q, alphas))
+_build_dense(::Type{Odd},  N::Integer, q, alphas) = Matrix(odd_matrix(N, q, alphas))
+
+# ---- Bilinear (no-conjugation) normalization of eigenvectors ----
+# Normalizes EACH column v of V by:
+#   nrm = fac*v[1]^2 + sum(v[2:end]^2), fac=2 for Even, 1 for Odd
+# then v /= sqrt(nrm).
+function _anorm_bilinear_cols!(V::AbstractMatrix, fac)
+    for j in axes(V, 2)
+        v = @view V[:, j]
+        nrm = fac * (v[1] * v[1]) + sum(x -> x * x, @view v[2:end])
+        v ./= sqrt(nrm)   # sqrt may be complex; matches NumPy behavior
+    end
+    return V
+end
+
+# ---- Apply Mathieu conventions to eigenvectors ----
+# Even: first component scaled by 1/sqrt(2), then bilinear normalization with fac=2.
+# Odd: bilinear normalization with fac=1.
+function _mathieu_normalize!(::Type{Even}, V::AbstractMatrix)
+    T = eltype(V)
+    √2 = sqrt(real(T(2)))     # correct precision/type (e.g., BigFloat)
+    V[1, :] ./= √2
+    _anorm_bilinear_cols!(V, T(2))
+    return V
+end
+
+function _mathieu_normalize!(::Type{Odd}, V::AbstractMatrix)
+    T = eltype(V)
+    _anorm_bilinear_cols!(V, T(1))
+    return V
+end
+
+# ---- Core eigensolvers (generic over symmetry) ----
+function _eigvals_sorted(::Type{S}, N::Integer, q, alphas) where {S<:Symmetry}
+    M = _build_dense(S, N, q, alphas)
+    vals = GenericSchur.eigen(M).values
+    return vals[_sortperm(vals)]
+end
+
+function _eigen_sorted(::Type{S}, N::Integer, q, alphas) where {S<:Symmetry}
+    M = _build_dense(S, N, q, alphas)
+    E = GenericSchur.eigen(M)
+
+    vals = E.values
+    vecs = copy(E.vectors)  # safe to mutate for normalization
+
+    idx = _sortperm(vals)
+    vals = vals[idx]
+    vecs = vecs[:, idx]
+
+    _mathieu_normalize!(S, vecs)
+
+    return vals, vecs
+end
+
+# ---- Precision-scoped wrappers ----
+function _with_precision(f, prec_bits::Union{Nothing,Int})
+    prec_bits === nothing ? f() : setprecision(BigFloat, prec_bits) do
+        f()
+    end
+end
+
+# --------------------------
+# Public API (sorted by default)
+# --------------------------
 
 """
     even_eigvals(N, q, alphas; prec_bits=nothing)
 
-Eigenvalues of the EVEN matrix, sorted by (Re, Im, |λ|).
+Eigenvalues for the EVEN matrix, sorted by (Re, Im, |λ|).
 """
-function even_eigvals(N::Integer, q, alphas::AbstractVector; prec_bits=nothing)
-    if prec_bits !== nothing
-        setprecision(BigFloat, prec_bits)
-    end
-
-    A = Matrix(even_matrix(N, q, alphas))
-    vals = GenericSchur.eigen(A).values
-
-    idx = _sortperm(vals)
-    return vals[idx]
-end
-
-
-"""
-    even_eigen(N, q, alphas; prec_bits=nothing)
-
-Eigenpairs (values, vectors) of the EVEN matrix, sorted by (Re, Im, |λ|).
-Vectors are right eigenvectors (columns).
-"""
-function even_eigen(N::Integer, q, alphas::AbstractVector; prec_bits=nothing)
-    if prec_bits !== nothing
-        setprecision(BigFloat, prec_bits)
-    end
-
-    A = Matrix(even_matrix(N, q, alphas))
-    E = GenericSchur.eigen(A)
-
-    vals = E.values
-    vecs = E.vectors
-
-    idx = _sortperm(vals)
-
-    return vals[idx], vecs[:, idx]
+function even_eigvals(N::Integer, q, alphas::AbstractVector; prec_bits::Union{Nothing,Int}=nothing)
+    _with_precision(() -> _eigvals_sorted(Even, N, q, alphas), prec_bits)
 end
 
 """
     odd_eigvals(N, q, alphas; prec_bits=nothing)
 
-Eigenvalues of the ODD matrix, sorted by (Re, Im, |λ|).
+Eigenvalues for the ODD matrix, sorted by (Re, Im, |λ|).
 """
 function odd_eigvals(N::Integer, q, alphas::AbstractVector; prec_bits::Union{Nothing,Int}=nothing)
-    if prec_bits !== nothing
-        setprecision(BigFloat, prec_bits)
-    end
-    B = Matrix(odd_matrix(N, q, alphas))
-    vals = GenericSchur.eigen(B).values
-    idx = _sortperm(vals)
-    return vals[idx]
+    _with_precision(() -> _eigvals_sorted(Odd, N, q, alphas), prec_bits)
 end
 
 """
-    odd_eigen(N, q, alphas; prec_bits=nothing)
+    even_eigen(N, q, alphas; prec_bits=nothing, normalize=true)
 
-Eigenpairs (values, vectors) of the ODD matrix, sorted by (Re, Im, |λ|).
-Vectors are right eigenvectors (columns).
+Eigenpairs for the EVEN matrix, sorted by (Re, Im, |λ|).
+
+Applies Mathieu conventions:
+1) first component of each eigenvector scaled by 1/√2
+2) bilinear normalization (no conjugation) with fac=2.
 """
-function odd_eigen(N::Integer, q, alphas::AbstractVector; prec_bits::Union{Nothing,Int}=nothing)
-    if prec_bits !== nothing
-        setprecision(BigFloat, prec_bits)
-    end
-    B = Matrix(odd_matrix(N, q, alphas))
-    E = GenericSchur.eigen(B)
-    vals, vecs = E.values, E.vectors
-    idx = _sortperm(vals)
-    return vals[idx], vecs[:, idx]
+function even_eigen(N::Integer, q, alphas::AbstractVector;
+                    prec_bits::Union{Nothing,Int}=nothing)
+    _with_precision(() -> _eigen_sorted(Even, N, q, alphas), prec_bits)
+end
 
+"""
+    odd_eigen(N, q, alphas; prec_bits=nothing, normalize=true)
+
+Eigenpairs for the ODD matrix, sorted by (Re, Im, |λ|).
+
+If `normalize=true` (default), applies bilinear normalization (no conjugation) with fac=1.
+"""
+function odd_eigen(N::Integer, q, alphas::AbstractVector;
+                   prec_bits::Union{Nothing,Int}=nothing)
+    _with_precision(() -> _eigen_sorted(Odd, N, q, alphas), prec_bits)
 end
 
 end # module HillFunctions
