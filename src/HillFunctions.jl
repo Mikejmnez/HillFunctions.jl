@@ -108,8 +108,8 @@ end
 # Odd: bilinear normalization with fac=1.
 function _mathieu_normalize!(::Type{Even}, V::AbstractMatrix)
     T = eltype(V)
-    √2 = sqrt(real(T(2)))     # correct precision/type (e.g., BigFloat)
-    V[1, :] ./= √2
+    sqrt2 = sqrt(real(T(2)))   # correct precision/type (e.g., BigFloat)
+    V[1, :] ./= sqrt2
     _anorm_bilinear_cols!(V, T(2))
     return V
 end
