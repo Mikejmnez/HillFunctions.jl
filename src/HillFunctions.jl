@@ -8,37 +8,73 @@ export even_matrix, odd_matrix,
        even_eigvals, odd_eigvals,
        even_eigen,  odd_eigen
 
-"""
-    even_matrix(N, q, alphas)
+# helper: ensure sqrt(2) etc never forces Complex{Int} matrices
+_realfloat_type(::Type{T}) where {T} = T <: Integer ? Float64 : T
 
-Construct the (N+1)x(N+1) sparse "even" matrix with main diagonal 4r^2 for r=0:N,
-and symmetric off-diagonals determined by `q` and `alphas`.
-
-Convention: `alphas[2]` controls the ±1 diagonals, `alphas[3]` controls ±2, etc.
-"""
-function even_matrix(N::Integer, q, alphas::AbstractVector)
-    N >= 0 || throw(ArgumentError("N must be ≥ 0"))
-
-    # Promote everything to a consistent complex element type
-    T = promote_type(typeof(q), Complex{eltype(alphas)}, Complex{BigFloat})
-    qT = T(q)
-
-    # Main diagonal: r = 0:N (length N+1)
-    d = [T(BigFloat(4) * BigFloat(r)^2) for r in 0:N]
-    A = spdiagm(0 => d)  # (N+1)x(N+1)
-
-    # Add off-diagonals: offset = k = 1..min(N, length(alphas)-1)
-    maxk = min(N, length(alphas) - 1)
-    for k in 1:maxk
-        α = alphas[k + 1]
-        iszero(α) && continue
-        len = (N + 1) - k
-        vals = fill(qT * T(α), len) # constant along the diagonal in your current model
-        # 🔹 Special correction for k = 1
-        if k == 1
-            vals[1] *= sqrt(big(2)) 
+# Ensure alphas has length at least L by padding with zeros (no truncation).
+function _pad_alphas(alphas::AbstractVector, L::Integer, ::Type{CT}) where {CT}
+    if length(alphas) >= L
+        return alphas  # keep as-is; we'll treat out-of-range as 0 anyway
+    end
+    out = Vector{CT}(undef, L)
+    @inbounds begin
+        for i in 1:length(alphas)
+            out[i] = CT(alphas[i])
         end
-        A = A + spdiagm(k => vals, -k => vals)
+        for i in (length(alphas)+1):L
+            out[i] = zero(CT)
+        end
+    end
+    return out
+end
+
+"""
+    even_matrix(q, N, alphas)
+
+Construct the ODD matrix Tᵒ in dense form.
+
+- Input N is the "even size" parameter; output is (N-1)×(N-1).
+- Out-of-range α_k are treated as 0.
+"""
+function even_matrix(q, N::Integer, alphas::AbstractVector)
+    N ≥ 2 || throw(ArgumentError("N must be ≥ 2"))
+
+    # Need up to α_{2(N-1)}
+    need = 2*(N-1)
+
+    # Choose Complex{R} with floating real type (avoid Complex{Int})
+    Rq = real(typeof(q))
+    R0 = promote_type(Rq, eltype(alphas))
+    Rr = _realfloat_type(R0)
+    CT = Complex{Rr}
+    qC = CT(q)
+
+    # pad if necessary (do NOT truncate)
+    alphasC = _pad_alphas(alphas, need, CT)
+
+    α(k::Integer) = (1 ≤ k ≤ length(alphasC)) ? alphasC[k] : zero(CT)
+
+    A = zeros(CT, N, N)
+    sqrt2 = CT(sqrt(Rr(2)))
+
+    # first row/col: c = 1..N-1
+    @inbounds for c in 1:(N-1)
+        v = sqrt2 * qC * α(c)
+        A[1, c+1] = v
+        A[c+1, 1] = v
+    end
+
+    # block r,c = 1..N-1 (math indices), Julia i=r+1
+    @inbounds for r in 1:(N-1)
+        i = r + 1
+        A[i, i] = CT(4) * CT(r)^2 + qC * α(2r)
+
+        for c in (r+1):(N-1)
+            j = c + 1
+            v = qC * (α(abs(r - c)) + α(r + c))
+            A[i, j] = v
+            A[j, i] = v
+        end
     end
 
     return A
@@ -46,33 +82,46 @@ end
 
 
 """
-    odd_matrix(N, q, alphas)
+    odd_matrix(q, N, alphas)
 
-Construct the (N+1)x(N+1) sparse "odd" matrix with main diagonal 4r^2 for r=1:N+1,
-and the same off-diagonal convention as `even_matrix`.
+Construct the ODD matrix Tᵒ in dense form.
+
+- Input N is the "even size" parameter; output is (N-1)×(N-1).
+- Out-of-range α_k are treated as 0.
 """
-function odd_matrix(N::Integer, q, alphas::AbstractVector)
-    N >= 0 || throw(ArgumentError("N must be ≥ 0"))
+function odd_matrix(q, N::Integer, alphas::AbstractVector)
+    N ≥ 3 || throw(ArgumentError("N must be ≥ 3 (odd matrix is (N-1)×(N-1))"))
 
-    T = promote_type(typeof(q), Complex{eltype(alphas)}, Complex{BigFloat})
-    qT = T(q)
+    R = N - 1
+    need = 2*R  # need up to α_{2R}
 
-    # Main diagonal: r = 1:N+1 (length N+1)
-    d = [T(BigFloat(4) * BigFloat(r)^2) for r in 1:(N + 1)]
-    B = spdiagm(0 => d)
+    # Choose Complex{R} with floating real type (avoid Complex{Int})
+    Rq = real(typeof(q))
+    R0 = promote_type(Rq, eltype(alphas))
+    Rr = _realfloat_type(R0)
+    CT = Complex{Rr}
+    qC = CT(q)
 
-    maxk = min(N, length(alphas) - 1)
-    for k in 1:maxk
-        α = alphas[k + 1]
-        iszero(α) && continue
-        len = (N + 1) - k
-        vals = fill(qT * T(α), len)
-        B = B + spdiagm(k => vals, -k => vals)
+    # pad if necessary (do NOT truncate)
+    alphasC = _pad_alphas(alphas, need, CT)
+
+    α(k::Integer) = (1 ≤ k ≤ length(alphasC)) ? alphasC[k] : zero(CT)
+
+    B = zeros(CT, R, R)
+
+    @inbounds for r in 1:R
+        # diagonal: 4r^2 - q*α_{2r}
+        B[r, r] = CT(4) * CT(r)^2 - qC * α(2r)
+
+        for c in (r+1):R
+            v = qC * (α(abs(r - c)) - α(r + c))
+            B[r, c] = v
+            B[c, r] = v
+        end
     end
 
     return B
 end
-
 # --------------------------
 # Symmetry types + pipeline
 # --------------------------
@@ -87,8 +136,8 @@ export Even, Odd
 _sortperm(vals) = sortperm(vals; by = λ -> (real(λ), imag(λ), abs(λ)))
 
 # Build dense matrix for eigensolve (N is small; dense is fine)
-_build_dense(::Type{Even}, N::Integer, q, alphas) = Matrix(even_matrix(N, q, alphas))
-_build_dense(::Type{Odd},  N::Integer, q, alphas) = Matrix(odd_matrix(N, q, alphas))
+_build_dense(::Type{Even},  q, N::Integer, alphas) = Matrix(even_matrix(q, N, alphas))
+_build_dense(::Type{Odd}, q, N::Integer, alphas) = Matrix(odd_matrix(q, N, alphas))
 
 # ---- Bilinear (no-conjugation) normalization of eigenvectors ----
 # Normalizes EACH column v of V by:
@@ -122,13 +171,13 @@ end
 
 # ---- Core eigensolvers (generic over symmetry) ----
 function _eigvals_sorted(::Type{S}, N::Integer, q, alphas) where {S<:Symmetry}
-    M = _build_dense(S, N, q, alphas)
+    M = _build_dense(S, q, N, alphas)
     vals = GenericSchur.eigen(M).values
     return vals[_sortperm(vals)]
 end
 
 function _eigen_sorted(::Type{S}, N::Integer, q, alphas) where {S<:Symmetry}
-    M = _build_dense(S, N, q, alphas)
+    M = _build_dense(S, q, N, alphas)
     E = GenericSchur.eigen(M)
 
     vals = E.values
