@@ -87,3 +87,41 @@ end
         @test isapprox(nrm, target; atol=1e-8, rtol=1e-8)
     end
 end
+
+@testset "odd matrix q=1i" begin
+    alphas = [1, 2, 3, 4, 5, 6, 7, 8]
+    q = 1im
+    Klin = 1:length(alphas)
+    N = 5
+    B = odd_matrix(q, N, alphas)
+
+    B_expected = ComplexF64[
+        4-2im  -2im    -2im    -2im
+        -2im   16-4im  -4im    -4im
+        -2im   -4im    36-6im  -6im
+        -2im   -4im    -6im    64-8im
+    ]
+
+    @test size(B) == (4,4)
+    @test isapprox(B, B_expected; atol=1e-12, rtol=1e-12)
+
+end
+
+@testset "even matrix q=1i" begin
+    alphas = [1, 2, 3, 4, 5, 6]
+    q = 1im
+    Klin = 1:length(alphas)
+    N = 4
+    A = even_matrix(q, N, alphas)
+
+    A_expected = ComplexF64[
+        0.0+0.0im      0.0+1.41421im   0.0+2.82843im   0.0+4.24264im
+        0.0+1.41421im  4.0+2.0im       0.0+4.0im       0.0+6.0im
+        0.0+2.82843im  0.0+4.0im      16.0+4.0im       0.0+6.0im
+        0.0+4.24264im  0.0+6.0im       0.0+6.0im      36.0+6.0im
+    ]
+
+    @test size(A) == (4,4)
+    @test isapprox(A, A_expected; atol=1e-4, rtol=1e-4)
+
+end
