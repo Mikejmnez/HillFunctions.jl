@@ -7,12 +7,15 @@ function bilinear_norm(v; symmetry::Symbol)
     return fac * (v[1] * v[1]) + sum(x -> x * x, @view v[2:end])
 end
 
+# Bilinear inner product (NO conjugation)
+bilinear_inner(v1, v2) = sum(v1 .* v2)
+
 @testset "Mathieu bilinear normalization (even)" begin
     N = 8
     q = 1im
     alphas = [0, 1, zeros(N-1)...]
 
-    vals, vecs = even_eigen(N, q, alphas)
+    vals, vecs = even_eigen(q, N, alphas)
 
     for j in axes(vecs, 2)
         nrm = bilinear_norm(@view vecs[:, j]; symmetry=:even)
@@ -25,7 +28,7 @@ end
     q = 1im
     alphas = [0, 1, zeros(N-1)...]
 
-    vals, vecs = odd_eigen(N, q, alphas)
+    vals, vecs = odd_eigen(q, N, alphas)
 
     for j in axes(vecs, 2)
         nrm = bilinear_norm(@view vecs[:, j]; symmetry=:odd)
@@ -38,7 +41,7 @@ end
     q = Complex{BigFloat}(0, 1)
     alphas = BigFloat[0, 1, zeros(N-1)...]
 
-    vals, vecs = even_eigen(N, q, alphas; prec_bits=256);
+    vals, vecs = even_eigen(q, N, alphas; prec_bits=256);
 
     for j in axes(vecs, 2)
         nrm = bilinear_norm(@view vecs[:, j]; symmetry=:even)
@@ -51,7 +54,7 @@ end
     N = 6
     q = 1im
     alphas = [0, 1, zeros(N-1)...]
-    _, vecs = even_eigen(N, q, alphas);
+    _, vecs = even_eigen(q, N, alphas);
     # test only first rwo
     nrm = sum(x -> x * x, @view vecs[1, :])
     @test isapprox(nrm, 0.5 + 0.0im; atol=1e-8, rtol=1e-8)
@@ -63,7 +66,7 @@ end
     N = 6
     q = 1im
     alphas = [0, 1, zeros(N-1)...]
-    _, vecs = even_eigen(N, q, alphas);
+    _, vecs = even_eigen(q, N, alphas);
 
     target = one(eltype(vecs)) + 0im
 
@@ -78,7 +81,7 @@ end
     N = 6
     q = 1im
     alphas = [0, 1, zeros(N-1)...]
-    _, vecs = odd_eigen(N, q, alphas);
+    _, vecs = odd_eigen(q, N, alphas);
 
     target = one(eltype(vecs)) + 0im
 
@@ -163,4 +166,48 @@ end
     B = odd_matrix(q, N, alphas)
 
     @test eltype(B) == Complex{BigFloat}
+end
+
+@testset "Even eigenvectors: bilinear column orthogonality" begin
+    N = 35
+    q = 100.0im
+    alphas = [0.5]
+
+    _, V = even_eigen(q, N, alphas)
+
+    for j in axes(V, 1)
+        for i in axes(V, 2)
+            prod=bilinear_inner(V[i, :], V[j, :])
+            if j!=i
+                @test isapprox(prod, zero(prod); atol=1e-4, rtol=1e-4)
+            else
+                if j==1
+                    @test isapprox(prod, 0.5*one(prod); atol=1e-4, rtol=1e-4)
+                else
+                    @test isapprox(prod, one(prod); atol=1e-4, rtol=1e-4)
+                end
+            end
+        end
+    end
+    
+end
+
+@testset "Odd eigenvectors: bilinear column orthogonality" begin
+    N = 25
+    q = 100.0im
+    alphas = [0.5]
+
+    _, V = odd_eigen(q, N, alphas)
+
+    for j in axes(V, 1)
+        for i in axes(V, 2)
+            prod=bilinear_inner(V[i, :], V[j, :])
+            if j!=i
+                @test isapprox(prod, zero(prod); atol=1e-4, rtol=1e-4)
+            else
+                @test isapprox(prod, one(prod); atol=1e-4, rtol=1e-4)
+            end
+        end
+    end
+
 end
