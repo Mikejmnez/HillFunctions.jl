@@ -211,3 +211,52 @@ end
     end
 
 end
+
+
+@testset "Even eigenfunction mappings with normal modes" begin
+    N = 25
+    q = 100.0im
+    alphas = [-0.5]
+    y = collect(range(0, π; length=100));
+
+    _, V = even_eigen(q, N, alphas)
+    Phis_e = even_eigenfunctions(V, y);
+
+    R  = size(V, 1)
+    r = 0:R-1
+    # Basis matrix: cos(2 r y)
+    B = cos.(2 .* (y .* r'))   # size Ny × R
+
+    for i in R
+        if i==1
+            fac=2
+        else
+            fac=1
+        end
+        prod = Phis_e * (fac .* vec(V[i, :]))
+        @test isapprox(prod, B[:,i]; atol=1e-4, rtol=1e-4)
+    end
+
+end
+
+
+@testset "Odd eigenfunction mappings with normal modes" begin
+    N = 25
+    q = 100.0im
+    alphas = [-0.5]
+    y = collect(range(0, π; length=100));
+
+    _, V = odd_eigen(q, N, alphas)
+    Phis_o = odd_eigenfunctions(V, y);
+
+    R  = size(V, 1)
+    r = 1:R
+    # Basis matrix: cos(2 r y)
+    B = sin.(2 .* (y .* r'))   # size Ny × R
+
+    for i in R
+        prod = Phis_o * vec(V[i, :])
+        @test isapprox(prod, B[:,i]; atol=1e-4, rtol=1e-4)
+    end
+
+end

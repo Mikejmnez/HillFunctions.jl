@@ -6,7 +6,9 @@ using GenericSchur
 
 export even_matrix, odd_matrix,
        even_eigvals, odd_eigvals,
-       even_eigen,  odd_eigen
+       even_eigen,  odd_eigen, 
+       even_eigenfunctions,
+       odd_eigenfunctions
 
 # helper: ensure sqrt(2) etc never forces Complex{Int} matrices
 _realfloat_type(::Type{T}) where {T} = T <: Integer ? Float64 : T
@@ -255,5 +257,75 @@ function odd_eigen(q, N::Integer,alphas::AbstractVector;
                    prec_bits::Union{Nothing,Int}=nothing)
     _with_precision(() -> _eigen_sorted(Odd, q, N, alphas), prec_bits)
 end
+
+
+"""
+Compute all even eigenfunctions ϕ_{2n}(y).
+
+Inputs:
+- A : coefficient matrix (R × N) of even eigenvectors
+      A[r+1, n+1] = A_{2r}^{(2n)}
+- y : vector of points in [0, π]
+
+Returns:
+- Φ : matrix (length(y) × N)
+      Φ[:,1] = ϕ₀(y)
+      Φ[:,2] = ϕ₂(y)
+      Φ[:,3] = ϕ₄(y)
+      ...
+"""
+function even_eigenfunctions(A::AbstractMatrix, y::AbstractVector)
+
+    R  = size(A, 1)
+    # r = 0,1,2,...,R-1
+    r = 0:R-1
+
+    # Basis matrix: cos(2 r y)
+    B = cos.(2 .* (y .* r'))   # size Ny × R
+
+    # Copy coefficients
+    C = copy(A)
+
+    # Evaluate all eigenfunctions
+    Φ = B * C
+
+    return Φ
+end
+
+
+"""
+Compute all odd eigenfunctions ϕ_{2n+2}(y).
+
+Inputs:
+- B : coefficient matrix (R × N) of odd eigenvectors
+      B[r+1, n+1] = B_{2r+2}^{(2n+2)}
+- y : vector of points in [0, π]
+
+Returns:
+- Φ : matrix (length(y) × N)
+      Φ[:,1] = ϕ₂(y)
+      Φ[:,2] = ϕ₄(y)
+      Φ[:,3] = ϕ6(y)
+      ...
+"""
+function odd_eigenfunctions(A::AbstractMatrix, y::AbstractVector)
+
+    R  = size(A, 1)
+
+    # r = 1,1,2,...,R
+    r = 1:R
+
+    # Basis matrix: sin(2 r y)
+    B = sin.(2 .* (y .* r'))   # size Ny × R
+
+    # Copy coefficients
+    C = copy(A)
+
+    # Evaluate all eigenfunctions
+    Φ = B * C
+
+    return Φ
+end
+
 
 end # module HillFunctions
