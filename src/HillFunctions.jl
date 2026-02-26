@@ -30,38 +30,46 @@ function _pad_alphas(alphas::AbstractVector, L::Integer, ::Type{CT}) where {CT}
     return out
 end
 
+
+# Decide base real float type (preserves BigFloat if present, avoids Int)
+function _base_real_type(q, alphas)
+    Rq = q isa Real ? typeof(q) : real(typeof(q))          # e.g. Int64 for 100im, BigFloat for big(1)+0im
+    R0 = promote_type(Rq, eltype(alphas))
+    return _realfloat_type(R0)
+end
+
+# Decide matrix element type from q (Real -> real matrix; Complex -> complex matrix)
+_matrix_eltype(q, Tr::Type) = q isa Real ? Tr : Complex{Tr}
+
+
 """
     even_matrix(q, N, alphas)
 
-Construct the ODD matrix Tᵒ in dense form.
+Construct the EVEN matrix in dense form.
 
-- Input N is the "even size" parameter; output is (N-1)×(N-1).
+- Input N is the size parameter; output is N×N.
 - Out-of-range α_k are treated as 0.
+- If `q` is real, the matrix is real symmetric (`Matrix{Tr}`).
+- If `q` is complex (e.g. purely imaginary), the matrix is complex symmetric (`Matrix{Complex{Tr}}`).
 """
 function even_matrix(q, N::Integer, alphas::AbstractVector)
     N ≥ 2 || throw(ArgumentError("N must be ≥ 2"))
 
-    # Need up to α_{2(N-1)}
-    need = 2*(N-1)
+    need = 2*(N-1)                # need up to α_{2(N-1)}
+    Tr = _base_real_type(q, alphas)
+    MT = _matrix_eltype(q, Tr)
 
-    # Choose Complex{R} with floating real type (avoid Complex{Int})
-    Rq = real(typeof(q))
-    R0 = promote_type(Rq, eltype(alphas))
-    Rr = _realfloat_type(R0)
-    CT = Complex{Rr}
-    qC = CT(q)
+    qT = MT(q)
+    alphasT = _pad_alphas(alphas, need, MT)
 
-    # pad if necessary (do NOT truncate)
-    alphasC = _pad_alphas(alphas, need, CT)
+    α(k::Integer) = (1 ≤ k ≤ length(alphasT)) ? alphasT[k] : zero(MT)
 
-    α(k::Integer) = (1 ≤ k ≤ length(alphasC)) ? alphasC[k] : zero(CT)
-
-    A = zeros(CT, N, N)
-    sqrt2 = CT(sqrt(Rr(2)))
+    A = zeros(MT, N, N)
+    sqrt2 = MT(sqrt(Tr(2)))
 
     # first row/col: c = 1..N-1
     @inbounds for c in 1:(N-1)
-        v = sqrt2 * qC * α(c)
+        v = sqrt2 * qT * α(c)
         A[1, c+1] = v
         A[c+1, 1] = v
     end
@@ -69,61 +77,60 @@ function even_matrix(q, N::Integer, alphas::AbstractVector)
     # block r,c = 1..N-1 (math indices), Julia i=r+1
     @inbounds for r in 1:(N-1)
         i = r + 1
-        A[i, i] = CT(4) * CT(r)^2 + qC * α(2r)
+        A[i, i] = MT(4) * MT(r)^2 + qT * α(2r)
 
         for c in (r+1):(N-1)
             j = c + 1
-            v = qC * (α(abs(r - c)) + α(r + c))
+            v = qT * (α(abs(r - c)) + α(r + c))
             A[i, j] = v
             A[j, i] = v
         end
     end
 
-    return A
+    return q isa Real ? Symmetric(A) : A
 end
 
 
 """
     odd_matrix(q, N, alphas)
 
-Construct the ODD matrix Tᵒ in dense form.
+Construct the ODD matrix in dense form.
 
-- Input N is the "even size" parameter; output is (N-1)×(N-1).
+- Input N is the size parameter; output is (N-1)×(N-1).
 - Out-of-range α_k are treated as 0.
+- If `q` is real, the matrix is real symmetric.
+- If `q` is complex (e.g. purely imaginary), the matrix is complex symmetric.
 """
 function odd_matrix(q, N::Integer, alphas::AbstractVector)
     N ≥ 3 || throw(ArgumentError("N must be ≥ 3 (odd matrix is (N-1)×(N-1))"))
 
     R = N - 1
-    need = 2*R  # need up to α_{2R}
+    need = 2*R
 
-    # Choose Complex{R} with floating real type (avoid Complex{Int})
-    Rq = real(typeof(q))
-    R0 = promote_type(Rq, eltype(alphas))
-    Rr = _realfloat_type(R0)
-    CT = Complex{Rr}
-    qC = CT(q)
+    Tr = _base_real_type(q, alphas)
+    MT = _matrix_eltype(q, Tr)
 
-    # pad if necessary (do NOT truncate)
-    alphasC = _pad_alphas(alphas, need, CT)
+    qT = MT(q)
+    alphasT = _pad_alphas(alphas, need, MT)
 
-    α(k::Integer) = (1 ≤ k ≤ length(alphasC)) ? alphasC[k] : zero(CT)
+    α(k::Integer) = (1 ≤ k ≤ length(alphasT)) ? alphasT[k] : zero(MT)
 
-    B = zeros(CT, R, R)
+    B = zeros(MT, R, R)
 
     @inbounds for r in 1:R
-        # diagonal: 4r^2 - q*α_{2r}
-        B[r, r] = CT(4) * CT(r)^2 - qC * α(2r)
+        B[r, r] = MT(4) * MT(r)^2 - qT * α(2r)
 
         for c in (r+1):R
-            v = qC * (α(abs(r - c)) - α(r + c))
+            v = qT * (α(abs(r - c)) - α(r + c))
             B[r, c] = v
             B[c, r] = v
         end
     end
 
-    return B
+    return q isa Real ? Symmetric(B) : B
 end
+
+
 # --------------------------
 # Symmetry types + pipeline
 # --------------------------
