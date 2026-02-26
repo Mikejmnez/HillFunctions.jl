@@ -1,5 +1,6 @@
 using HillFunctions
 using Test
+using LinearAlgebra
 
 # Bilinear norm (no conjugation)
 function bilinear_norm(v; symmetry::Symbol)
@@ -9,6 +10,84 @@ end
 
 # Bilinear inner product (NO conjugation)
 bilinear_inner(v1, v2) = sum(v1 .* v2)
+
+
+@testset "Real-q support" begin
+
+    @testset "_base_real_type" begin
+        # alphas always real (as you noted)
+        alphas_f64 = [0.5, 1.25]
+        alphas_i   = [1, 2, 3]
+
+        # Real q + Float64 alphas -> Float64
+        @test HillFunctions._base_real_type(2.0, alphas_f64) === Float64
+
+        # Real integer q + integer alphas -> Float64 (via _realfloat_type)
+        @test HillFunctions._base_real_type(2, alphas_i) === Float64
+
+        # BigFloat q + Float64 alphas -> BigFloat (promote)
+        @test HillFunctions._base_real_type(big"2.0", alphas_f64) === BigFloat
+
+        # Purely imaginary (complex) q should still return the *real* base type
+        @test HillFunctions._base_real_type(2.0im, alphas_f64) === Float64
+        @test HillFunctions._base_real_type(big"2.0" * im, alphas_f64) === BigFloat
+    end
+
+
+    @testset "even_matrix with real q" begin
+        N = 6
+        alphas = [0.5]
+
+        q = 2.0
+        A = even_matrix(q, N, alphas)
+
+        # 1) purely real element type
+        @test eltype(A) <: Real
+
+        # 2) symmetric numerically
+        @test issymmetric(A)
+
+        # 3) diagonal is real (redundant but explicit)
+        @test all(isreal, diag(A))
+
+        # 4) sanity: size is N×N
+        @test size(A) == (N, N)
+
+        # 5) BigFloat preserves BigFloat when q is BigFloat
+        qB = big"2.0"
+        AB = even_matrix(qB, N, alphas)
+        @test eltype(AB) === BigFloat
+        @test issymmetric(AB)
+    end
+
+
+    @testset "odd_matrix with real q" begin
+        N = 7
+        alphas = [0.5]
+
+        q = 3.0
+        B = odd_matrix(q, N, alphas)
+
+        R = N - 1
+
+        # 1) purely real element type
+        @test eltype(B) <: Real
+
+        # 2) symmetric numerically
+        @test issymmetric(B)
+
+        # 3) size matches (N-1)×(N-1)
+        @test size(B) == (R, R)
+
+        # 4) BigFloat preserves BigFloat when q is BigFloat
+        qB = big"3.0"
+        BB = odd_matrix(qB, N, alphas)
+        @test eltype(BB) === BigFloat
+        @test issymmetric(BB)
+    end
+
+end
+
 
 @testset "Mathieu bilinear normalization (even)" begin
     N = 8
