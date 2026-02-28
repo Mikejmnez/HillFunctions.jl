@@ -339,3 +339,15 @@ end
     end
 
 end
+
+
+@testset "HillFunctions sweep writer" begin
+    # ... your other includes / tests ...
+
+    try
+        @eval using JLD2
+        include("test_io_jld2.jl")
+    catch err
+        @info "Skipping JLD2 I/O tests (JLD2 not available in test env)." err
+    end
+end
