@@ -1,0 +1,8 @@
+repos:
+  - repo: local
+    hooks:
+      - id: juliaformatter
+        name: JuliaFormatter (HillFunctions)
+        entry: julia --project=. scripts/format.jl
+        language: system
+        types: [julia]

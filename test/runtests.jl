@@ -17,7 +17,7 @@ bilinear_inner(v1, v2) = sum(v1 .* v2)
     @testset "_base_real_type" begin
         # alphas always real (as you noted)
         alphas_f64 = [0.5, 1.25]
-        alphas_i   = [1, 2, 3]
+        alphas_i = [1, 2, 3]
 
         # Real q + Float64 alphas -> Float64
         @test HillFunctions._base_real_type(2.0, alphas_f64) === Float64
@@ -97,8 +97,8 @@ end
     vals, vecs = even_eigen(q, N, alphas)
 
     for j in axes(vecs, 2)
-        nrm = bilinear_norm(@view vecs[:, j]; symmetry=:even)
-        @test isapprox(nrm, one(nrm); atol=1e-8, rtol=1e-8)
+        nrm = bilinear_norm(@view vecs[:, j]; symmetry = :even)
+        @test isapprox(nrm, one(nrm); atol = 1e-8, rtol = 1e-8)
     end
 end
 
@@ -110,8 +110,8 @@ end
     vals, vecs = odd_eigen(q, N, alphas)
 
     for j in axes(vecs, 2)
-        nrm = bilinear_norm(@view vecs[:, j]; symmetry=:odd)
-        @test isapprox(nrm, one(nrm); atol=1e-8, rtol=1e-8)
+        nrm = bilinear_norm(@view vecs[:, j]; symmetry = :odd)
+        @test isapprox(nrm, one(nrm); atol = 1e-8, rtol = 1e-8)
     end
 end
 
@@ -120,11 +120,11 @@ end
     q = Complex{BigFloat}(0, 1)
     alphas = BigFloat[0, 1, zeros(N-1)...]
 
-    vals, vecs = even_eigen(q, N, alphas; prec_bits=256);
+    vals, vecs = even_eigen(q, N, alphas; prec_bits = 256);
 
     for j in axes(vecs, 2)
-        nrm = bilinear_norm(@view vecs[:, j]; symmetry=:even)
-        @test isapprox(nrm, one(nrm); atol=big"1e-40")
+        nrm = bilinear_norm(@view vecs[:, j]; symmetry = :even)
+        @test isapprox(nrm, one(nrm); atol = big"1e-40")
     end
 end
 
@@ -136,7 +136,7 @@ end
     _, vecs = even_eigen(q, N, alphas);
     # test only first rwo
     nrm = sum(x -> x * x, @view vecs[1, :])
-    @test isapprox(nrm, 0.5 + 0.0im; atol=1e-8, rtol=1e-8)
+    @test isapprox(nrm, 0.5 + 0.0im; atol = 1e-8, rtol = 1e-8)
 end
 
 
@@ -149,9 +149,9 @@ end
 
     target = one(eltype(vecs)) + 0im
 
-    for r in 2:size(vecs, 1)
+    for r = 2:size(vecs, 1)
         nrm = sum(x -> x * x, @view vecs[r, :])
-        @test isapprox(nrm, target; atol=1e-8, rtol=1e-8)
+        @test isapprox(nrm, target; atol = 1e-8, rtol = 1e-8)
     end
 end
 
@@ -166,7 +166,7 @@ end
 
     for r in axes(vecs, 2)
         nrm = sum(x -> x * x, @view vecs[r, :])
-        @test isapprox(nrm, target; atol=1e-8, rtol=1e-8)
+        @test isapprox(nrm, target; atol = 1e-8, rtol = 1e-8)
     end
 end
 
@@ -177,14 +177,14 @@ end
     B = odd_matrix(q, N, alphas)
 
     B_expected = ComplexF64[
-        4-2im  -2im    -2im    -2im
-        -2im   16-4im  -4im    -4im
-        -2im   -4im    36-6im  -6im
-        -2im   -4im    -6im    64-8im
+        4-2im -2im -2im -2im
+        -2im 16-4im -4im -4im
+        -2im -4im 36-6im -6im
+        -2im -4im -6im 64-8im
     ]
 
-    @test size(B) == (4,4)
-    @test isapprox(B, B_expected; atol=1e-12, rtol=1e-12)
+    @test size(B) == (4, 4)
+    @test isapprox(B, B_expected; atol = 1e-12, rtol = 1e-12)
 
 end
 
@@ -195,14 +195,14 @@ end
     A = even_matrix(q, N, alphas)
 
     A_expected = ComplexF64[
-        0.0+0.0im      0.0+1.41421im   0.0+2.82843im   0.0+4.24264im
-        0.0+1.41421im  4.0+2.0im       0.0+4.0im       0.0+6.0im
-        0.0+2.82843im  0.0+4.0im      16.0+4.0im       0.0+6.0im
-        0.0+4.24264im  0.0+6.0im       0.0+6.0im      36.0+6.0im
+        0.0+0.0im 0.0+1.41421im 0.0+2.82843im 0.0+4.24264im
+        0.0+1.41421im 4.0+2.0im 0.0+4.0im 0.0+6.0im
+        0.0+2.82843im 0.0+4.0im 16.0+4.0im 0.0+6.0im
+        0.0+4.24264im 0.0+6.0im 0.0+6.0im 36.0+6.0im
     ]
 
-    @test size(A) == (4,4)
-    @test isapprox(A, A_expected; atol=1e-4, rtol=1e-4)
+    @test size(A) == (4, 4)
+    @test isapprox(A, A_expected; atol = 1e-4, rtol = 1e-4)
 
 end
 
@@ -219,7 +219,7 @@ end
 @testset "even_matrix preserves Complex{BigFloat} element type with q and alphas" begin
     N = 4
     q = Complex{BigFloat}(0, 1)
-    alphas = BigFloat[1,2,3,4,5,6]
+    alphas = BigFloat[1, 2, 3, 4, 5, 6]
 
     A = even_matrix(q, N, alphas)
 
@@ -230,7 +230,7 @@ end
 @testset "odd_matrix preserves Complex{BigFloat} element type with q and alphas" begin
     N = 5
     q = Complex{BigFloat}(0, 1)
-    alphas = BigFloat[1,2,3,4,5,6,7,8]
+    alphas = BigFloat[1, 2, 3, 4, 5, 6, 7, 8]
 
     B = odd_matrix(q, N, alphas)
 
@@ -258,17 +258,17 @@ end
         for i in axes(V, 2)
             prod=bilinear_inner(V[i, :], V[j, :])
             if j!=i
-                @test isapprox(prod, zero(prod); atol=1e-4, rtol=1e-4)
+                @test isapprox(prod, zero(prod); atol = 1e-4, rtol = 1e-4)
             else
                 if j==1
-                    @test isapprox(prod, 0.5*one(prod); atol=1e-4, rtol=1e-4)
+                    @test isapprox(prod, 0.5*one(prod); atol = 1e-4, rtol = 1e-4)
                 else
-                    @test isapprox(prod, one(prod); atol=1e-4, rtol=1e-4)
+                    @test isapprox(prod, one(prod); atol = 1e-4, rtol = 1e-4)
                 end
             end
         end
     end
-    
+
 end
 
 @testset "Odd eigenvectors: bilinear column orthogonality" begin
@@ -282,9 +282,9 @@ end
         for i in axes(V, 2)
             prod=bilinear_inner(V[i, :], V[j, :])
             if j!=i
-                @test isapprox(prod, zero(prod); atol=1e-4, rtol=1e-4)
+                @test isapprox(prod, zero(prod); atol = 1e-4, rtol = 1e-4)
             else
-                @test isapprox(prod, one(prod); atol=1e-4, rtol=1e-4)
+                @test isapprox(prod, one(prod); atol = 1e-4, rtol = 1e-4)
             end
         end
     end
@@ -296,13 +296,13 @@ end
     N = 25
     q = 100.0im
     alphas = [-0.5]
-    y = collect(range(0, π; length=100));
+    y = collect(range(0, π; length = 100));
 
     _, V = even_eigen(q, N, alphas)
     Phis_e = even_eigenfunctions(V, y);
 
-    R  = size(V, 1)
-    r = 0:R-1
+    R = size(V, 1)
+    r = 0:(R-1)
     # Basis matrix: cos(2 r y)
     B = cos.(2 .* (y .* r'))   # size Ny × R
 
@@ -313,7 +313,7 @@ end
             fac=1
         end
         prod = Phis_e * (fac .* vec(V[i, :]))
-        @test isapprox(prod, B[:,i]; atol=1e-4, rtol=1e-4)
+        @test isapprox(prod, B[:, i]; atol = 1e-4, rtol = 1e-4)
     end
 
 end
@@ -323,19 +323,19 @@ end
     N = 25
     q = 100.0im
     alphas = [-0.5]
-    y = collect(range(0, π; length=100));
+    y = collect(range(0, π; length = 100));
 
     _, V = odd_eigen(q, N, alphas)
     Phis_o = odd_eigenfunctions(V, y);
 
-    R  = size(V, 1)
+    R = size(V, 1)
     r = 1:R
     # Basis matrix: cos(2 r y)
     B = sin.(2 .* (y .* r'))   # size Ny × R
 
     for i in R
         prod = Phis_o * vec(V[i, :])
-        @test isapprox(prod, B[:,i]; atol=1e-4, rtol=1e-4)
+        @test isapprox(prod, B[:, i]; atol = 1e-4, rtol = 1e-4)
     end
 
 end

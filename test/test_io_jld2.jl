@@ -9,9 +9,13 @@ using JLD2  # activates extension
 
     path = joinpath(mktempdir(), "sweep.jld2")
 
-    w = open_jld2_writer(path; nsteps=length(qs), meta=(N=N, alphas=alphas, symmetry=:even))
+    w = open_jld2_writer(
+        path;
+        nsteps = length(qs),
+        meta = (N = N, alphas = alphas, symmetry = :even),
+    )
 
-    sweep_eigen(Even, qs, N, alphas; prec_bits=128, writer=w)
+    sweep_eigen(Even, qs, N, alphas; prec_bits = 128, writer = w)
 
     q1, λ1, V1 = load_step_jld2(path, 1)
     @test q1 == qs[1]

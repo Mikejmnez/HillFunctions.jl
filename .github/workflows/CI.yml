@@ -34,8 +34,34 @@ jobs:
       - uses: codecov/codecov-action@v3
         with:
           files: lcov.info
+
+  format:
+    name: Format (JuliaFormatter)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: julia-actions/setup-julia@v1
+        with:
+          version: '1.11'
+
+      - uses: julia-actions/cache@v1
+
+      - name: Install JuliaFormatter (in project env)
+        run: |
+          julia --project=. -e 'using Pkg; Pkg.add("JuliaFormatter"); Pkg.instantiate()'
+
+      - name: Run formatter
+        run: |
+          julia --project=. -e 'using JuliaFormatter; format(".", verbose=false)'
+
+      - name: Fail if formatting changed files
+        run: |
+          git diff --exit-code
+
   docs:
     name: Documentation
+    needs: [format, test]
     runs-on: ubuntu-latest
     permissions:
       contents: write

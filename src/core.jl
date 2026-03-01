@@ -4,7 +4,7 @@
 
 abstract type Symmetry end
 struct Even <: Symmetry end
-struct Odd  <: Symmetry end
+struct Odd <: Symmetry end
 
 # helper: ensure sqrt(2) etc never forces Complex{Int} matrices
 _realfloat_type(::Type{T}) where {T} = T <: Integer ? Float64 : T
@@ -16,10 +16,10 @@ function _pad_alphas(alphas::AbstractVector, L::Integer, ::Type{CT}) where {CT}
     end
     out = Vector{CT}(undef, L)
     @inbounds begin
-        for i in 1:length(alphas)
+        for i = 1:length(alphas)
             out[i] = CT(alphas[i])
         end
-        for i in (length(alphas)+1):L
+        for i = (length(alphas)+1):L
             out[i] = zero(CT)
         end
     end
@@ -66,18 +66,18 @@ function even_matrix(q, N::Integer, alphas::AbstractVector)
     sqrt2 = MT(sqrt(Tr(2)))
 
     # first row/col: c = 1..N-1
-    @inbounds for c in 1:(N-1)
+    @inbounds for c = 1:(N-1)
         v = sqrt2 * qT * α(c)
         A[1, c+1] = v
         A[c+1, 1] = v
     end
 
     # block r,c = 1..N-1 (math indices), Julia i=r+1
-    @inbounds for r in 1:(N-1)
+    @inbounds for r = 1:(N-1)
         i = r + 1
         A[i, i] = MT(4) * MT(r)^2 + qT * α(2r)
 
-        for c in (r+1):(N-1)
+        for c = (r+1):(N-1)
             j = c + 1
             v = qT * (α(abs(r - c)) + α(r + c))
             A[i, j] = v
@@ -114,10 +114,10 @@ function odd_matrix(q, N::Integer, alphas::AbstractVector)
 
     B = zeros(MT, R, R)
 
-    @inbounds for r in 1:R
+    @inbounds for r = 1:R
         B[r, r] = MT(4) * MT(r)^2 - qT * α(2r)
 
-        for c in (r+1):R
+        for c = (r+1):R
             v = qT * (α(abs(r - c)) - α(r + c))
             B[r, c] = v
             B[c, r] = v
@@ -147,8 +147,8 @@ Returns:
       ...
 """
 function even_eigenfunctions(A::AbstractMatrix, y::AbstractVector)
-    R  = size(A, 1)
-    r = 0:R-1
+    R = size(A, 1)
+    r = 0:(R-1)
     B = cos.(2 .* (y .* r'))   # size Ny × R
     C = copy(A)
     Φ = B * C
@@ -171,7 +171,7 @@ Returns:
       ...
 """
 function odd_eigenfunctions(A::AbstractMatrix, y::AbstractVector)
-    R  = size(A, 1)
+    R = size(A, 1)
     r = 1:R
     B = sin.(2 .* (y .* r'))   # size Ny × R
     C = copy(A)

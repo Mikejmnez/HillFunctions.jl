@@ -8,15 +8,20 @@ Iterate over qs, computing eigenpairs for each q using the same logic as `even_e
 
 Returns `nothing` (streaming workflow).
 """
-function sweep_eigen(::Type{S}, qs, N::Integer, alphas;
-                     prec_bits::Union{Nothing,Int}=nothing,
-                     writer::Union{Nothing,AbstractSweepWriter}=nothing,
-                     callback::Union{Nothing,Function}=nothing) where {S<:Symmetry}
+function sweep_eigen(
+    ::Type{S},
+    qs,
+    N::Integer,
+    alphas;
+    prec_bits::Union{Nothing,Int} = nothing,
+    writer::Union{Nothing,AbstractSweepWriter} = nothing,
+    callback::Union{Nothing,Function} = nothing,
+) where {S<:Symmetry}
     for (iq, q) in pairs(qs)
         λ, V = _with_precision(() -> _eigen_sorted(S, q, N, alphas), prec_bits)
 
         callback === nothing || callback(iq, q, λ, V)
-        writer === nothing   || write_step!(writer, iq, q, λ, V)
+        writer === nothing || write_step!(writer, iq, q, λ, V)
     end
     return nothing
 end

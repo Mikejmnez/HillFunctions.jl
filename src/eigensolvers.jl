@@ -1,12 +1,13 @@
 # Sorting rule: increasing real part, then imag part (negative imag first), then |λ|
-_sortperm(vals; digits::Int=1) =
-    sortperm(vals; by = λ -> (round(real(λ); digits=digits),
-                              round(imag(λ); digits=digits),
-                              abs(λ)))
+_sortperm(vals; digits::Int = 1) = sortperm(
+    vals;
+    by = λ ->
+        (round(real(λ); digits = digits), round(imag(λ); digits = digits), abs(λ)),
+)
 
 # Build dense matrix for eigensolve (N is small; dense is fine)
 _build_dense(::Type{Even}, q, N::Integer, alphas) = Matrix(even_matrix(q, N, alphas))
-_build_dense(::Type{Odd},  q, N::Integer, alphas) = Matrix(odd_matrix(q, N, alphas))
+_build_dense(::Type{Odd}, q, N::Integer, alphas) = Matrix(odd_matrix(q, N, alphas))
 
 # ---- Core eigensolvers (generic over symmetry) ----
 function _eigvals_sorted(::Type{S}, q, N::Integer, alphas) where {S<:Symmetry}
@@ -47,7 +48,12 @@ end
 
 Eigenvalues for the EVEN matrix, sorted by (Re, Im, |λ|).
 """
-function even_eigvals(q, N::Integer, alphas::AbstractVector; prec_bits::Union{Nothing,Int}=nothing)
+function even_eigvals(
+    q,
+    N::Integer,
+    alphas::AbstractVector;
+    prec_bits::Union{Nothing,Int} = nothing,
+)
     _with_precision(() -> _eigvals_sorted(Even, q, N, alphas), prec_bits)
 end
 
@@ -56,7 +62,12 @@ end
 
 Eigenvalues for the ODD matrix, sorted by (Re, Im, |λ|).
 """
-function odd_eigvals(q, N::Integer, alphas::AbstractVector; prec_bits::Union{Nothing,Int}=nothing)
+function odd_eigvals(
+    q,
+    N::Integer,
+    alphas::AbstractVector;
+    prec_bits::Union{Nothing,Int} = nothing,
+)
     _with_precision(() -> _eigvals_sorted(Odd, q, N, alphas), prec_bits)
 end
 
@@ -69,8 +80,12 @@ Applies Mathieu conventions:
 1) first component of each eigenvector scaled by 1/√2
 2) bilinear normalization (no conjugation) with fac=2.
 """
-function even_eigen(q, N::Integer, alphas::AbstractVector;
-                    prec_bits::Union{Nothing,Int}=nothing)
+function even_eigen(
+    q,
+    N::Integer,
+    alphas::AbstractVector;
+    prec_bits::Union{Nothing,Int} = nothing,
+)
     _with_precision(() -> _eigen_sorted(Even, q, N, alphas), prec_bits)
 end
 
@@ -81,7 +96,11 @@ Eigenpairs for the ODD matrix, sorted by (Re, Im, |λ|).
 
 Applies bilinear normalization (no conjugation) with fac=1.
 """
-function odd_eigen(q, N::Integer, alphas::AbstractVector;
-                   prec_bits::Union{Nothing,Int}=nothing)
+function odd_eigen(
+    q,
+    N::Integer,
+    alphas::AbstractVector;
+    prec_bits::Union{Nothing,Int} = nothing,
+)
     _with_precision(() -> _eigen_sorted(Odd, q, N, alphas), prec_bits)
 end

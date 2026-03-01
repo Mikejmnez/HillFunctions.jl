@@ -15,7 +15,11 @@ end
 
 Create/initialize a JLD2 sweep file. Stores metadata and allocates a q index vector.
 """
-function HillFunctions.open_jld2_writer(path::AbstractString; nsteps::Int, meta::NamedTuple=NamedTuple())
+function HillFunctions.open_jld2_writer(
+    path::AbstractString;
+    nsteps::Int,
+    meta::NamedTuple = NamedTuple(),
+)
     jldopen(path, "w") do f
         for (k, v) in pairs(meta)
             f["meta/$(k)"] = v
@@ -29,7 +33,7 @@ end
 function HillFunctions.write_step!(w::JLD2Writer, iq, q, λ, V)
     jldopen(w.path, "a") do f
         g = "step/$(lpad(iq, 6, '0'))"
-        f["$g/q"]     = q
+        f["$g/q"] = q
         f["$g/evals"] = λ
         f["$g/evecs"] = V
     end
