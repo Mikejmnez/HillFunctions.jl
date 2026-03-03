@@ -51,6 +51,8 @@ Construct the EVEN matrix in dense form.
 - If `q` is complex (e.g. purely imaginary), the matrix is complex symmetric (`Matrix{Complex{Tr}}`).
 """
 function even_matrix(q, N::Integer, alphas::AbstractVector)
+    # TODO: I think this should be reversed with odd_matrix, considering the
+    # ordering of the modes. N >=3 if even -> cos(3y) minimal shearing mode
     N ≥ 2 || throw(ArgumentError("N must be ≥ 2"))
 
     need = 2*(N-1)                # need up to α_{2(N-1)}
@@ -99,6 +101,8 @@ Construct the ODD matrix in dense form.
 - If `q` is complex (e.g. purely imaginary), the matrix is complex symmetric.
 """
 function odd_matrix(q, N::Integer, alphas::AbstractVector)
+    # TODO: I think this should be reversed with even_matrix, considering the
+    # ordering of the modes. N >=2 if odd -> sin(3y) minumal shearing mode
     N ≥ 3 || throw(ArgumentError("N must be ≥ 3 (odd matrix is (N-1)×(N-1))"))
 
     R = N - 1
