@@ -340,9 +340,7 @@ end
 
 end
 
-
 @testset "HillFunctions sweep writer" begin
-    # ... your other includes / tests ...
 
     try
         @eval using JLD2
@@ -350,4 +348,31 @@ end
     catch err
         @info "Skipping JLD2 I/O tests (JLD2 not available in test env)." err
     end
+end
+
+
+@testset "test dense sweep of eigenpairs for range of q-values" begin
+    qs = im .* range(0, 10)
+    N = 40
+    alphas = [-0.5]
+
+    qvec, vals, vecs = collect_sweep_eigen_dense(Even, qs, N, alphas; prec_bits = 512)
+
+    @test size(qvec) == (11,)
+    @test size(vals) == (11, 40)
+    @test size(vecs) == (11, 40, 40)
+end
+
+@testset "test sweep of eigenpairs for range of q-values" begin
+    qs = im .* range(0, 10)
+    N = 40
+    alphas = [-0.5]
+
+    qvec, vals, vecs = collect_sweep_eigen(Even, qs, N, alphas; prec_bits = 512)
+
+    @test size(qvec) == (11,)
+    @test size(vals) == (11,)
+    @test size(vals[1]) == (40,)
+    @test size(vecs) == (11,)
+    @test size(vecs[1]) == (40, 40)
 end
