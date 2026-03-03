@@ -372,7 +372,77 @@ end
 
     @test size(qvec) == (11,)
     @test size(vals) == (11,)
-    @test size(vals[1]) == (40,)
     @test size(vecs) == (11,)
-    @test size(vecs[1]) == (40, 40)
+
+    @test size(vals[1]) == (2,)
+    @test size(vecs[1]) == (2, 2)
+
+    @test size(vals[4]) == (5,)
+    @test size(vecs[4]) == (5, 5)
+
+    @test size(vals[10]) == (8,)
+    @test size(vecs[10]) == (8, 8)
+
+end
+
+
+@testset "Test that eigenpairs return using sweep collectors have correct types" begin
+    alphas = Float64[-0.5]
+    N = 6
+
+    # Helper to test ragged collector output types
+    function check_ragged(::Type{S}, qs, T_expected) where {S<:HillFunctions.Symmetry}
+        qvec, vals, vecs = collect_sweep_eigen(S, qs, N, alphas; prec_bits = 128)
+
+        @test eltype(qvec) === eltype(qs)
+        @test length(vals) == length(qs)
+        @test length(vecs) == length(qs)
+
+        # Each entry is a vector/matrix with element type T_expected
+        @test eltype(vals[1]) === T_expected
+        @test eltype(vecs[1]) === T_expected
+
+        # And qvec entries match qs element type
+        @test qvec[1] isa eltype(qs)
+    end
+
+    # Helper to test dense collector output types
+    function check_dense(::Type{S}, qs, T_expected) where {S<:HillFunctions.Symmetry}
+        qvec, vals, vecs = collect_sweep_eigen_dense(S, qs, N, alphas; prec_bits = 128)
+
+        @test eltype(qvec) === eltype(qs)
+        @test eltype(vals) === T_expected
+        @test eltype(vecs) === T_expected
+
+        @test size(vals) == (length(qs), N)
+        @test size(vecs) == (length(qs), N, N)
+    end
+
+    # ---- Case 1: q :: Float64 -> outputs Float64
+    qs_real64 = [0.1, 0.2]
+    for S in (HillFunctions.Even, HillFunctions.Odd)
+        check_ragged(S, qs_real64, Float64)
+        check_dense(S, qs_real64, Float64)
+    end
+
+    # ---- Case 2: q :: ComplexF64 -> outputs ComplexF64
+    qs_c64 = ComplexF64[0.1im, 0.2im]
+    for S in (HillFunctions.Even, HillFunctions.Odd)
+        check_ragged(S, qs_c64, ComplexF64)
+        check_dense(S, qs_c64, ComplexF64)
+    end
+
+    # ---- Case 3: q :: BigFloat -> outputs BigFloat
+    qs_realbig = BigFloat[big"0.1", big"0.2"]
+    for S in (HillFunctions.Even, HillFunctions.Odd)
+        check_ragged(S, qs_realbig, BigFloat)
+        check_dense(S, qs_realbig, BigFloat)
+    end
+
+    # ---- Case 4: q :: Complex{BigFloat} -> outputs Complex{BigFloat}
+    qs_cbig = Complex{BigFloat}[Complex(big"0.0", big"0.1"), Complex(big"0.0", big"0.2")]
+    for S in (HillFunctions.Even, HillFunctions.Odd)
+        check_ragged(S, qs_cbig, Complex{BigFloat})
+        check_dense(S, qs_cbig, Complex{BigFloat})
+    end
 end

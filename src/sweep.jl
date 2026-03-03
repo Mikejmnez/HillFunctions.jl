@@ -28,43 +28,81 @@ end
 
 
 
+export collect_sweep_eigen
+
 """
-    collect_sweep_eigen(::Type{S}, qs, N, alphas; prec_bits=nothing)
+    collect_sweep_eigen(::Type{S}, qs, N, alphas;
+                        prec_bits=nothing, G=7)
 
-Compute eigenpairs for each `q` in `qs` and keep results in memory.
+Adaptive in-memory sweep.
 
-Returns `(qvec, vals, vecs)` where:
-- `qvec[i]` is the i-th q
-- `vals[i]` is the eigenvalue vector for qvec[i] (length N)
-- `vecs[i]` is the eigenvector matrix for qvec[i] (N×N)
+For each `q`, chooses a truncation size `R` based on:
 
-Notes:
-- Uses the same normalization and sorting as `even_eigen` / `odd_eigen`.
-- Suitable for interactive exploration and plotting.
+    4R^2 >= G^2 * abs(q) * maximum(abs, alphas)
+
+and clamps `R` to `2 <= R <= N`.
+
+Then computes eigenpairs from an R-sized matrix:
+- Even: uses `N = R` (even_matrix is R×R)
+- Odd:  uses `N = R+1` so odd_matrix is R×R
+
+Returns `(qvec, vals, vecs)`:
+- `qvec[i]`  = q
+- `vals[i]`  = eigenvalues vector (length R)
+- `vecs[i]`  = eigenvectors matrix (size R×R)
+
+Note: `R` can be recovered as `length(vals[i])`.
 """
 function collect_sweep_eigen(
     ::Type{S},
-    qs,
+    qs::AbstractVector{Q},
     N::Integer,
-    alphas;
+    alphas::AbstractVector;
     prec_bits::Union{Nothing,Int} = nothing,
-) where {S<:Symmetry}
-    nq = length(qs)  # requires sized container; see variant below if qs may not have length
+    G::Real = 7,
+) where {S<:Symmetry,Q}
 
-    qvec = Vector{Any}(undef, nq)
-    vals = Vector{Any}(undef, nq)
-    vecs = Vector{Any}(undef, nq)
+    nq = length(qs)
+    nq == 0 && return Q[], Vector{Vector{Any}}(), Vector{Matrix{Any}}()
 
-    cb = (iq, q, λ, V) -> begin
-        qvec[iq] = q
-        vals[iq] = λ
-        vecs[iq] = V
+    Rq = Q <: Real ? Q : real(Q)
+    R0 = promote_type(Rq, eltype(alphas))
+    Tr = _realfloat_type(R0)
+
+    # Matrix/eigensystem element type dictated by q being real vs complex
+    T = (Q <: Real) ? Tr : Complex{Tr}
+
+    RTq = Base.promote_op(abs, Q)
+    RTa = Base.promote_op(abs, eltype(alphas))
+    RT = promote_type(RTq, RTa, Tr)
+
+    amax = isempty(alphas) ? zero(RT) : RT(maximum(abs, alphas))
+
+    @inline function estimate_R(q::Q)::Int
+        X = RT(abs(q)) * amax
+        X == zero(RT) && return 2
+        R = ceil(Int, (RT(G) / RT(2)) * sqrt(X))
+        return clamp(R, 2, N)
     end
 
-    sweep_eigen(S, qs, N, alphas; prec_bits = prec_bits, callback = cb)
+    qvec = copy(qs)                          # Vector{Q}
+    vals = Vector{Vector{T}}(undef, nq)      # ragged lengths allowed
+    vecs = Vector{Matrix{T}}(undef, nq)
+
+    @inbounds for iq = 1:nq
+        q = qvec[iq]
+        R = estimate_R(q)
+        Nsolve = (S === Odd) ? (R + 1) : R
+
+        λ, V = _with_precision(() -> _eigen_sorted(S, q, Nsolve, alphas), prec_bits)
+
+        # Force to the target element type T (ensures invariants like Complex{BigFloat} when q is that type)
+        vals[iq] = T.(λ)
+        vecs[iq] = T.(V)
+    end
+
     return qvec, vals, vecs
 end
-
 
 """
     collect_sweep_eigen_dense(::Type{S}, qs::AbstractVector, N, alphas; prec_bits=nothing)
@@ -76,28 +114,34 @@ Returns `(qvec, vals, vecs)` where:
 """
 function collect_sweep_eigen_dense(
     ::Type{S},
-    qs::AbstractVector,
+    qs::AbstractVector{Q},
     N::Integer,
-    alphas;
+    alphas::AbstractVector;
     prec_bits::Union{Nothing,Int} = nothing,
-) where {S<:Symmetry}
+) where {S<:Symmetry,Q}
+
     nq = length(qs)
+    nq == 0 && throw(ArgumentError("qs must be non-empty"))
+
+    # internal solve size: Odd uses N+1 so odd_matrix is N×N
+    Nsolve = (S === Odd) ? (N + 1) : N
+
+    # type driven by q + alphas
+    Rq = Q <: Real ? Q : real(Q)
+    R0 = promote_type(Rq, eltype(alphas))
+    Tr = _realfloat_type(R0)
+    T = (Q <: Real) ? Tr : Complex{Tr}
+
     qvec = copy(qs)
-
-    # compute first to infer type
-    λ1, V1 = _with_precision(() -> _eigen_sorted(S, qvec[1], N, alphas), prec_bits)
-    T = eltype(λ1)
-
     vals = Matrix{T}(undef, nq, N)
     vecs = Array{T,3}(undef, nq, N, N)
 
-    vals[1, :] .= λ1
-    vecs[1, :, :] .= V1
+    @inbounds for iq = 1:nq
+        q = qvec[iq]
+        λ, V = _with_precision(() -> _eigen_sorted(S, q, Nsolve, alphas), prec_bits)
 
-    for iq = 2:nq
-        λ, V = _with_precision(() -> _eigen_sorted(S, qvec[iq], N, alphas), prec_bits)
-        vals[iq, :] .= λ
-        vecs[iq, :, :] .= V
+        vals[iq, :] .= T.(λ)
+        vecs[iq, :, :] .= T.(V)
     end
 
     return qvec, vals, vecs
