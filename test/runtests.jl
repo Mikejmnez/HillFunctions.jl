@@ -446,3 +446,65 @@ end
         check_dense(S, qs_cbig, Complex{BigFloat})
     end
 end
+
+@testset "check even sweeped ragged eigenfunctions map to normal modes" begin
+    qs = ComplexF64.(range(0, 100, 11))
+    Ny = 100
+    y = range(0, 2*π; length = Ny)
+    N = 100
+    alphas = [-0.5]
+    qvec, vals, Ak = collect_sweep_eigen(Even, qs, N, alphas)
+    Phi_e = sweep_even_eigenfunctions(Ak, y)
+
+    @test size(Phi_e[1]) == (Ny, 2)
+    @test size(Phi_e[end]) == (Ny, 25)
+
+    for n in range(1, length(Phi_e))
+        V = Ak[n]
+        Phi = Phi_e[n]
+        R = size(V, 1)
+        r = 0:(R-1)
+        # Basis matrix: cos(2 r y)
+        B = cos.(2 .* (y .* r'))   # size Ny × R
+
+        for i in R
+            if i==1
+                fac=2
+            else
+                fac=1
+            end
+            prod = Phi * (fac .* vec(V[i, :]))
+            @test isapprox(prod, B[:, i]; atol = 1e-4, rtol = 1e-4)
+        end
+    end
+
+end
+
+@testset "check odd sweeped ragged eigenfunctions map to normal modes" begin
+    qs = ComplexF64.(range(0, 100, 11))
+    Ny = 100
+    y = range(0, 2*π; length = Ny)
+    N = 100
+    alphas = [-0.5]
+    qvec, vals, Bk = collect_sweep_eigen(Odd, qs, N, alphas)
+    Phi_o = sweep_odd_eigenfunctions(Bk, y)
+
+    @test size(Phi_o[1]) == (Ny, 2)
+    @test size(Phi_o[end]) == (Ny, 25)
+
+    for n in range(1, length(Phi_o))
+        V = Bk[n]
+        Phi = Phi_o[n]
+        R = size(V, 1)
+        r = 1:R
+        # Basis matrix: cos(2 r y)
+        B = sin.(2 .* (y .* r'))   # size Ny × R
+
+        for i in R
+            prod = Phi * vec(V[i, :])
+            @test isapprox(prod, B[:, i]; atol = 1e-4, rtol = 1e-4)
+        end
+    end
+
+
+end

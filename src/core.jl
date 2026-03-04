@@ -154,8 +154,7 @@ function even_eigenfunctions(A::AbstractMatrix, y::AbstractVector)
     R = size(A, 1)
     r = 0:(R-1)
     B = cos.(2 .* (y .* r'))   # size Ny × R
-    C = copy(A)
-    Φ = B * C
+    Φ = B * A
     return Φ
 end
 
@@ -178,7 +177,62 @@ function odd_eigenfunctions(A::AbstractMatrix, y::AbstractVector)
     R = size(A, 1)
     r = 1:R
     B = sin.(2 .* (y .* r'))   # size Ny × R
-    C = copy(A)
-    Φ = B * C
+    Φ = B * A
     return Φ
+end
+
+"""
+    sweep_even_eigenfunctions(vecs, y)
+
+vecs: Array{T,3} of size (nq, R, N) (often (nq, N, N))
+Returns Φs: Array{T,3} of size (nq, Ny, N), where Φs[iq, :, :] are eigenfunctions at q_i.
+"""
+function sweep_even_eigenfunctions(vecs::Array{T,3}, y::AbstractVector) where {T}
+    nq, R, N = size(vecs)
+    Ny = length(y)
+
+    r = 0:(R-1)
+    B = cos.(T(2) .* (y .* r'))          # Ny × R, typed
+    Φs = Array{T,3}(undef, nq, Ny, N)
+
+    @inbounds for iq = 1:nq
+        A = @view vecs[iq, :, :]         # R × N
+        Φs[iq, :, :] .= B * A
+    end
+    return Φs
+end
+
+function sweep_odd_eigenfunctions(vecs::Array{T,3}, y::AbstractVector) where {T}
+    nq, R, N = size(vecs)
+    Ny = length(y)
+
+    r = 1:R
+    B = sin.(T(2) .* (y .* r'))          # Ny × R
+    Φs = Array{T,3}(undef, nq, Ny, N)
+
+    @inbounds for iq = 1:nq
+        A = @view vecs[iq, :, :]
+        Φs[iq, :, :] .= B * A
+    end
+    return Φs
+end
+
+function sweep_even_eigenfunctions(vecs::Vector{<:AbstractMatrix}, y::AbstractVector)
+    nq = length(vecs)
+    Φs = Vector{Matrix{eltype(vecs[1])}}(undef, nq)
+
+    @inbounds for iq = 1:nq
+        Φs[iq] = even_eigenfunctions(vecs[iq], y)  # Ny × N_i
+    end
+    return Φs
+end
+
+function sweep_odd_eigenfunctions(vecs::Vector{<:AbstractMatrix}, y::AbstractVector)
+    nq = length(vecs)
+    Φs = Vector{Matrix{eltype(vecs[1])}}(undef, nq)
+
+    @inbounds for iq = 1:nq
+        Φs[iq] = odd_eigenfunctions(vecs[iq], y)
+    end
+    return Φs
 end

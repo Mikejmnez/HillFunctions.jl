@@ -23,8 +23,8 @@ export even_matrix,
     sweep_eigen,
     collect_sweep_eigen,
     collect_sweep_eigen_dense,
-    AbstractSweepWriter,
-    write_step!,
-    close_writer
+    sweep_even_eigenfunctions,
+    sweep_odd_eigenfunctions
+AbstractSweepWriter, write_step!, close_writer
 
 end # module
