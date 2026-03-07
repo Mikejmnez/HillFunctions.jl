@@ -27,9 +27,6 @@ function sweep_eigen(
 end
 
 
-
-export collect_sweep_eigen
-
 """
     collect_sweep_eigen(::Type{S}, qs, N, alphas;
                         prec_bits=nothing, G=7)
