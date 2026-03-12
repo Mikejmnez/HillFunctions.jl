@@ -16,12 +16,18 @@ function _eigvals_sorted(::Type{S}, q, N::Integer, alphas) where {S<:Symmetry}
     return vals[_sortperm(vals)]
 end
 
-function _eigen_sorted(::Type{S}, q, N::Integer, alphas) where {S<:Symmetry}
+function _eigen_sorted(
+    ::Type{S},
+    q,
+    N::Integer,
+    alphas;
+    Nmax::Union{Nothing,Int} = nothing,
+) where {S<:Symmetry}
     M = _build_dense(S, q, N, alphas)
     E = GenericSchur.eigen(M)
 
     vals = E.values
-    vecs = copy(E.vectors)  # safe to mutate for normalization
+    vecs = copy(E.vectors)
 
     idx = _sortperm(vals)
     vals = vals[idx]
@@ -29,7 +35,12 @@ function _eigen_sorted(::Type{S}, q, N::Integer, alphas) where {S<:Symmetry}
 
     _mathieu_normalize!(S, vecs)
 
-    return vals, vecs
+    if Nmax === nothing
+        return vals, vecs
+    else
+        n = min(Nmax, length(vals))
+        return vals[1:n], vecs[:, 1:n]
+    end
 end
 
 # ---- Precision-scoped wrappers ----
@@ -85,8 +96,9 @@ function even_eigen(
     N::Integer,
     alphas::AbstractVector;
     prec_bits::Union{Nothing,Int} = nothing,
+    Nmax::Union{Nothing,Int} = nothing,
 )
-    _with_precision(() -> _eigen_sorted(Even, q, N, alphas), prec_bits)
+    _with_precision(() -> _eigen_sorted(Even, q, N, alphas; Nmax), prec_bits)
 end
 
 """
@@ -101,6 +113,7 @@ function odd_eigen(
     N::Integer,
     alphas::AbstractVector;
     prec_bits::Union{Nothing,Int} = nothing,
+    Nmax::Union{Nothing,Int} = nothing,
 )
-    _with_precision(() -> _eigen_sorted(Odd, q, N, alphas), prec_bits)
+    _with_precision(() -> _eigen_sorted(Odd, q, N, alphas; Nmax), prec_bits)
 end

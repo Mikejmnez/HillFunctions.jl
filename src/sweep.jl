@@ -57,6 +57,7 @@ function collect_sweep_eigen(
     alphas::AbstractVector;
     prec_bits::Union{Nothing,Int} = nothing,
     G::Real = 7,
+    Nmax::Union{Nothing,Int} = nothing,
 ) where {S<:Symmetry,Q}
 
     nq = length(qs)
@@ -91,7 +92,7 @@ function collect_sweep_eigen(
         R = estimate_R(q)
         Nsolve = (S === Odd) ? (R + 1) : R
 
-        λ, V = _with_precision(() -> _eigen_sorted(S, q, Nsolve, alphas), prec_bits)
+        λ, V = _with_precision(() -> _eigen_sorted(S, q, Nsolve, alphas; Nmax), prec_bits)
 
         # Force to the target element type T (ensures invariants like Complex{BigFloat} when q is that type)
         vals[iq] = T.(λ)
