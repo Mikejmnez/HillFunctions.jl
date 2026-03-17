@@ -374,14 +374,14 @@ end
     @test size(vals) == (11,)
     @test size(vecs) == (11,)
 
-    @test size(vals[1]) == (2,)
-    @test size(vecs[1]) == (2, 2)
+    @test size(vals[1]) == (10,)
+    @test size(vecs[1]) == (10, 10)
 
-    @test size(vals[4]) == (5,)
-    @test size(vecs[4]) == (5, 5)
+    @test size(vals[4]) == (10,)
+    @test size(vecs[4]) == (10, 10)
 
-    @test size(vals[10]) == (8,)
-    @test size(vecs[10]) == (8, 8)
+    @test size(vals[10]) == (10,)
+    @test size(vecs[10]) == (10, 10)
 
 end
 
@@ -456,7 +456,7 @@ end
     qvec, vals, Ak = collect_sweep_eigen(Even, qs, N, alphas)
     Phi_e = sweep_even_eigenfunctions(Ak, y)
 
-    @test size(Phi_e[1]) == (Ny, 2)
+    @test size(Phi_e[1]) == (Ny, 10)
     @test size(Phi_e[end]) == (Ny, 25)
 
     for n in range(1, length(Phi_e))
@@ -489,7 +489,7 @@ end
     qvec, vals, Bk = collect_sweep_eigen(Odd, qs, N, alphas)
     Phi_o = sweep_odd_eigenfunctions(Bk, y)
 
-    @test size(Phi_o[1]) == (Ny, 2)
+    @test size(Phi_o[1]) == (Ny, 10)
     @test size(Phi_o[end]) == (Ny, 25)
 
     for n in range(1, length(Phi_o))

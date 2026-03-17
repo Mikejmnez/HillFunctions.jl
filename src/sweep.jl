@@ -78,9 +78,9 @@ function collect_sweep_eigen(
 
     @inline function estimate_R(q::Q)::Int
         X = RT(abs(q)) * amax
-        X == zero(RT) && return 2
+        X == zero(RT) && return 10
         R = ceil(Int, (RT(G) / RT(2)) * sqrt(X))
-        return clamp(R, 2, N)
+        return clamp(R, 10, N)
     end
 
     qvec = copy(qs)                          # Vector{Q}
