@@ -39,7 +39,7 @@ function _eigen_sorted(
         return vals, vecs
     else
         n = min(Nmax, length(vals))
-        return vals[1:n], vecs[:, 1:n]
+        return vals, vecs[1:n, 1:end]
     end
 end
 
