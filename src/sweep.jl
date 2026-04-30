@@ -15,13 +15,17 @@ function sweep_eigen(
     alphas;
     prec_bits::Union{Nothing,Int} = nothing,
     writer::Union{Nothing,AbstractSweepWriter} = nothing,
+    progress = nothing,
     callback::Union{Nothing,Function} = nothing,
 ) where {S<:Symmetry}
+    nq = progress === nothing ? nothing : length(qs)
     for (iq, q) in pairs(qs)
         λ, V = _with_precision(() -> _eigen_sorted(S, q, N, alphas), prec_bits)
 
+        progress === nothing || progress(iq, nq, q)
         callback === nothing || callback(iq, q, λ, V)
         writer === nothing || write_step!(writer, iq, q, λ, V)
+
     end
     return nothing
 end
@@ -56,6 +60,7 @@ function collect_sweep_eigen(
     N::Integer,
     alphas::AbstractVector;
     prec_bits::Union{Nothing,Int} = nothing,
+    progress = nothing,
     G::Real = 7,
     Nmax::Union{Nothing,Int} = nothing,
 ) where {S<:Symmetry,Q}
@@ -97,6 +102,8 @@ function collect_sweep_eigen(
         # Force to the target element type T (ensures invariants like Complex{BigFloat} when q is that type)
         vals[iq] = T.(λ)
         vecs[iq] = T.(V)
+        progress === nothing || progress(iq, nq, q)
+
     end
 
     return qvec, vals, vecs
@@ -115,6 +122,7 @@ function collect_sweep_eigen_dense(
     qs::AbstractVector{Q},
     N::Integer,
     alphas::AbstractVector;
+    progress = nothing,
     prec_bits::Union{Nothing,Int} = nothing,
 ) where {S<:Symmetry,Q}
 
@@ -140,6 +148,8 @@ function collect_sweep_eigen_dense(
 
         vals[iq, :] .= T.(λ)
         vecs[iq, :, :] .= T.(V)
+        progress === nothing || progress(iq, nq, q)
+
     end
 
     return qvec, vals, vecs
