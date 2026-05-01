@@ -386,6 +386,39 @@ end
 end
 
 
+@testset "adaptive eigen matches ragged sweep entries" begin
+    alphas = Float64[-0.5]
+    N = 12
+    Nmax = 5
+
+    qsets = (
+        ComplexF64[0.0im, 0.25im, 1.0im],
+        Complex{BigFloat}[
+            Complex(big"0.0", big"0.0"),
+            Complex(big"0.0", big"0.25"),
+            Complex(big"0.0", big"1.0"),
+        ],
+    )
+
+    for qs in qsets
+        for S in (HillFunctions.Even, HillFunctions.Odd)
+            qvec, vals, vecs = collect_sweep_eigen(S, qs, N, alphas; Nmax)
+
+            @test qvec == qs
+
+            for iq in eachindex(qs)
+                λ, V = adaptive_eigen(S, qs[iq], N, alphas; Nmax)
+
+                @test vals[iq] ≈ λ
+                @test vecs[iq] ≈ V
+                @test size(vecs[iq], 1) == Nmax
+                @test size(vecs[iq], 2) == length(vals[iq])
+            end
+        end
+    end
+end
+
+
 @testset "Test that eigenpairs return using sweep collectors have correct types" begin
     alphas = Float64[-0.5]
     N = 6

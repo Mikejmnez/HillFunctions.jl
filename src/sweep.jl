@@ -31,6 +31,63 @@ function sweep_eigen(
 end
 
 
+function _adaptive_R(q, N::Integer, alphas::AbstractVector; G::Real = 7)
+    Rq = q isa Real ? typeof(q) : real(typeof(q))
+    R0 = promote_type(Rq, eltype(alphas))
+    Tr = _realfloat_type(R0)
+
+    RTq = Base.promote_op(abs, typeof(q))
+    RTa = Base.promote_op(abs, eltype(alphas))
+    RT = promote_type(RTq, RTa, Tr)
+
+    amax = isempty(alphas) ? zero(RT) : RT(maximum(abs, alphas))
+    X = RT(abs(q)) * amax
+    X == zero(RT) && return 10
+
+    R = ceil(Int, (RT(G) / RT(2)) * sqrt(X))
+    return clamp(R, 10, N)
+end
+
+
+"""
+    adaptive_eigen(::Type{S}, q, N, alphas; prec_bits=nothing, G=7, Nmax=nothing)
+
+Compute one adaptive eigensolve using the same truncation policy as
+`collect_sweep_eigen`.
+
+For the given `q`, chooses a truncation size `R` based on:
+
+    4R^2 >= G^2 * abs(q) * maximum(abs, alphas)
+
+and clamps `R` to `10 <= R <= N`.
+
+Then computes eigenpairs from an R-sized matrix:
+- Even: uses `N = R` (even_matrix is R×R)
+- Odd:  uses `N = R+1` so odd_matrix is R×R
+
+Returns `(vals, vecs)`, with output element type determined by `q` and `alphas`.
+"""
+function adaptive_eigen(
+    ::Type{S},
+    q,
+    N::Integer,
+    alphas::AbstractVector;
+    prec_bits::Union{Nothing,Int} = nothing,
+    G::Real = 7,
+    Nmax::Union{Nothing,Int} = nothing,
+) where {S<:Symmetry}
+    Tr = _base_real_type(q, alphas)
+    T = q isa Real ? Tr : Complex{Tr}
+
+    R = _adaptive_R(q, N, alphas; G)
+    Nsolve = (S === Odd) ? (R + 1) : R
+
+    λ, V = _with_precision(() -> _eigen_sorted(S, q, Nsolve, alphas; Nmax), prec_bits)
+
+    return T.(λ), T.(V)
+end
+
+
 """
     collect_sweep_eigen(::Type{S}, qs, N, alphas;
                         prec_bits=nothing, G=7)
@@ -41,7 +98,7 @@ For each `q`, chooses a truncation size `R` based on:
 
     4R^2 >= G^2 * abs(q) * maximum(abs, alphas)
 
-and clamps `R` to `2 <= R <= N`.
+and clamps `R` to `10 <= R <= N`.
 
 Then computes eigenpairs from an R-sized matrix:
 - Even: uses `N = R` (even_matrix is R×R)
@@ -75,33 +132,16 @@ function collect_sweep_eigen(
     # Matrix/eigensystem element type dictated by q being real vs complex
     T = (Q <: Real) ? Tr : Complex{Tr}
 
-    RTq = Base.promote_op(abs, Q)
-    RTa = Base.promote_op(abs, eltype(alphas))
-    RT = promote_type(RTq, RTa, Tr)
-
-    amax = isempty(alphas) ? zero(RT) : RT(maximum(abs, alphas))
-
-    @inline function estimate_R(q::Q)::Int
-        X = RT(abs(q)) * amax
-        X == zero(RT) && return 10
-        R = ceil(Int, (RT(G) / RT(2)) * sqrt(X))
-        return clamp(R, 10, N)
-    end
-
     qvec = copy(qs)                          # Vector{Q}
     vals = Vector{Vector{T}}(undef, nq)      # ragged lengths allowed
     vecs = Vector{Matrix{T}}(undef, nq)
 
     @inbounds for iq = 1:nq
         q = qvec[iq]
-        R = estimate_R(q)
-        Nsolve = (S === Odd) ? (R + 1) : R
+        λ, V = adaptive_eigen(S, q, N, alphas; prec_bits, G, Nmax)
 
-        λ, V = _with_precision(() -> _eigen_sorted(S, q, Nsolve, alphas; Nmax), prec_bits)
-
-        # Force to the target element type T (ensures invariants like Complex{BigFloat} when q is that type)
-        vals[iq] = T.(λ)
-        vecs[iq] = T.(V)
+        vals[iq] = eltype(λ) === T ? λ : T.(λ)
+        vecs[iq] = eltype(V) === T ? V : T.(V)
         progress === nothing || progress(iq, nq, q)
 
     end
