@@ -114,8 +114,8 @@ end
 
 Returns `(qvec, vals, vecs)` where:
 - `qvec` is a copy of `qs`
-- `vals` is `nq × N`
-- `vecs` is `nq × N × N`  (indexing: vecs[iq, :, :] is the N×N eigenvector matrix)
+- `vals` is `N × nq`
+- `vecs` is `N × N × nq `  (indexing: vecs[:, :, iq] is the N×N eigenvector matrix)
 """
 function collect_sweep_eigen_dense(
     ::Type{S},
@@ -139,15 +139,15 @@ function collect_sweep_eigen_dense(
     T = (Q <: Real) ? Tr : Complex{Tr}
 
     qvec = copy(qs)
-    vals = Matrix{T}(undef, nq, N)
-    vecs = Array{T,3}(undef, nq, N, N)
+    vals = Matrix{T}(undef, N, nq)
+    vecs = Array{T,3}(undef, N, N, nq)
 
     @inbounds for iq = 1:nq
         q = qvec[iq]
         λ, V = _with_precision(() -> _eigen_sorted(S, q, Nsolve, alphas), prec_bits)
 
-        vals[iq, :] .= T.(λ)
-        vecs[iq, :, :] .= T.(V)
+        vals[:, iq] .= T.(λ)
+        vecs[:, :, iq] .= T.(V)
         progress === nothing || progress(iq, nq, q)
 
     end

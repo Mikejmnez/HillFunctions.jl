@@ -184,35 +184,35 @@ end
 """
     sweep_even_eigenfunctions(vecs, y)
 
-vecs: Array{T,3} of size (nq, R, N) (often (nq, N, N))
-Returns Φs: Array{T,3} of size (nq, Ny, N), where Φs[iq, :, :] are eigenfunctions at q_i.
+vecs: Array{T,3} of size (R, N, nq) (often (N, N, nq))
+Returns Φs: Array{T,3} of size (Ny, N, nq), where Φs[:, :, iq] are eigenfunctions at q_i.
 """
 function sweep_even_eigenfunctions(vecs::Array{T,3}, y::AbstractVector) where {T}
-    nq, R, N = size(vecs)
+    R, N, nq = size(vecs)
     Ny = length(y)
 
     r = 0:(R-1)
     B = cos.(T(2) .* (y .* r'))          # Ny × R, typed
-    Φs = Array{T,3}(undef, nq, Ny, N)
+    Φs = Array{T,3}(undef, Ny, N, nq)
 
     @inbounds for iq = 1:nq
-        A = @view vecs[iq, :, :]         # R × N
-        Φs[iq, :, :] .= B * A
+        A = @view vecs[:, :, iq]         # R × N
+        Φs[:, :, iq] .= B * A
     end
     return Φs
 end
 
 function sweep_odd_eigenfunctions(vecs::Array{T,3}, y::AbstractVector) where {T}
-    nq, R, N = size(vecs)
+    R, N, nq = size(vecs)
     Ny = length(y)
 
     r = 1:R
     B = sin.(T(2) .* (y .* r'))          # Ny × R
-    Φs = Array{T,3}(undef, nq, Ny, N)
+    Φs = Array{T,3}(undef, Ny, N, nq)
 
     @inbounds for iq = 1:nq
-        A = @view vecs[iq, :, :]
-        Φs[iq, :, :] .= B * A
+        A = @view vecs[:, :, iq]
+        Φs[:, :, iq] .= B * A
     end
     return Φs
 end

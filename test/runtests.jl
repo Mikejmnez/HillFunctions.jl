@@ -359,8 +359,8 @@ end
     qvec, vals, vecs = collect_sweep_eigen_dense(Even, qs, N, alphas; prec_bits = 512)
 
     @test size(qvec) == (11,)
-    @test size(vals) == (11, 40)
-    @test size(vecs) == (11, 40, 40)
+    @test size(vals) == (40, 11)
+    @test size(vecs) == (40, 40, 11)
 end
 
 @testset "test sweep of eigenpairs for range of q-values" begin
@@ -414,8 +414,8 @@ end
         @test eltype(vals) === T_expected
         @test eltype(vecs) === T_expected
 
-        @test size(vals) == (length(qs), N)
-        @test size(vecs) == (length(qs), N, N)
+        @test size(vals) == (N, length(qs))
+        @test size(vecs) == (N, N, length(qs))
     end
 
     # ---- Case 1: q :: Float64 -> outputs Float64
