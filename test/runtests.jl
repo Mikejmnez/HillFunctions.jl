@@ -505,6 +505,28 @@ end
             @test isapprox(prod, B[:, i]; atol = 1e-4, rtol = 1e-4)
         end
     end
+end
 
+@testset "dense sweep q-last slices match direct eigenpairs" begin
+    qs = ComplexF64[0.0im, 0.25im, 0.5im]
+    N = 8
+    alphas = Float64[-0.5]
+    prec_bits = 128
 
+    for S in (HillFunctions.Even, HillFunctions.Odd)
+        qvec, vals, vecs = collect_sweep_eigen_dense(S, qs, N, alphas; prec_bits)
+
+        Nsolve = S === HillFunctions.Odd ? N + 1 : N
+
+        for iq in eachindex(qs)
+            λ_direct, V_direct = HillFunctions._with_precision(
+                () -> HillFunctions._eigen_sorted(S, qs[iq], Nsolve, alphas),
+                prec_bits,
+            )
+
+            @test qvec[iq] == qs[iq]
+            @test vals[:, iq] ≈ eltype(vals).(λ_direct)
+            @test vecs[:, :, iq] ≈ eltype(vecs).(V_direct)
+        end
+    end
 end
