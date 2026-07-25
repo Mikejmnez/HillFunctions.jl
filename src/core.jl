@@ -26,9 +26,8 @@ function _pad_alphas(alphas::AbstractVector, L::Integer, ::Type{CT}) where {CT}
     return out
 end
 
-# Decide base real float type (preserves BigFloat if present, avoids Int)
 function _base_real_type(q, alphas)
-    Rq = q isa Real ? typeof(q) : real(typeof(q))          # e.g. Int64 for 100im, BigFloat for big(1)+0im
+    Rq = q isa BigFloat ? Float64 : q isa Real ? typeof(q) : real(typeof(q))
     R0 = promote_type(Rq, eltype(alphas))
     return _realfloat_type(R0)
 end
