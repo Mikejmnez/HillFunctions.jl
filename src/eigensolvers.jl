@@ -29,9 +29,12 @@ function _eigen_sorted(
     vals = E.values
     vecs = copy(E.vectors)
 
-    idx = _sortperm(vals)
-    vals = vals[idx]
-    vecs = vecs[:, idx]
+    # sort eigenvalues of q is not real
+    if !isreal(q)
+        idx = _sortperm(vals)
+        vals = vals[idx]
+        vecs = vecs[:, idx]
+    end
 
     _mathieu_normalize!(S, vecs)
 
