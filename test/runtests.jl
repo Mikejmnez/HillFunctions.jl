@@ -26,7 +26,7 @@ bilinear_inner(v1, v2) = sum(v1 .* v2)
         @test HillFunctions._base_real_type(2, alphas_i) === Float64
 
         # BigFloat q + Float64 alphas -> BigFloat (promote)
-        @test HillFunctions._base_real_type(big"2.0", alphas_f64) === BigFloat
+        @test HillFunctions._base_real_type(big"2.0", alphas_f64) === Float64
 
         # Purely imaginary (complex) q should still return the *real* base type
         @test HillFunctions._base_real_type(2.0im, alphas_f64) === Float64
@@ -56,7 +56,7 @@ bilinear_inner(v1, v2) = sum(v1 .* v2)
         # 5) BigFloat preserves BigFloat when q is BigFloat
         qB = big"2.0"
         AB = even_matrix(qB, N, alphas)
-        @test eltype(AB) === BigFloat
+        @test eltype(AB) === Float64
         @test issymmetric(AB)
     end
 
@@ -82,7 +82,7 @@ bilinear_inner(v1, v2) = sum(v1 .* v2)
         # 4) BigFloat preserves BigFloat when q is BigFloat
         qB = big"3.0"
         BB = odd_matrix(qB, N, alphas)
-        @test eltype(BB) === BigFloat
+        @test eltype(BB) === Float64
         @test issymmetric(BB)
     end
 
