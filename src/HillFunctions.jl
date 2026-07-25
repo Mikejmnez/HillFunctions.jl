@@ -28,4 +28,4 @@ export even_matrix,
     sweep_odd_eigenfunctions
 AbstractSweepWriter, write_step!, close_writer
 
-end # module
+end

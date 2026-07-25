@@ -6,8 +6,8 @@ _sortperm(vals; digits::Int = 1) = sortperm(
 )
 
 # Build dense matrix for eigensolve (N is small; dense is fine)
-_build_dense(::Type{Even}, q, N::Integer, alphas) = Matrix(even_matrix(q, N, alphas))
-_build_dense(::Type{Odd}, q, N::Integer, alphas) = Matrix(odd_matrix(q, N, alphas))
+_build_dense(::Type{Even}, q, N::Integer, alphas) = even_matrix(q, N, alphas)
+_build_dense(::Type{Odd}, q, N::Integer, alphas) = odd_matrix(q, N, alphas)
 
 # ---- Core eigensolvers (generic over symmetry) ----
 function _eigvals_sorted(::Type{S}, q, N::Integer, alphas) where {S<:Symmetry}
