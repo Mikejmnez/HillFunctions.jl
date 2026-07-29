@@ -12,7 +12,7 @@ _build_dense(::Type{Odd}, q, N::Integer, alphas) = odd_matrix(q, N, alphas)
 # ---- Core eigensolvers (generic over symmetry) ----
 function _eigvals_sorted(::Type{S}, q, N::Integer, alphas) where {S<:Symmetry}
     M = _build_dense(S, q, N, alphas)
-    vals = GenericSchur.eigen(M).values
+    vals = eigvals(M)
     return vals[_sortperm(vals)]
 end
 
