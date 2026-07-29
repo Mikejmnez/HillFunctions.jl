@@ -6,4 +6,8 @@ Manifest.toml
 Manifest.toml
 
 .claude/*
+*.ipynb_checkpoints/
+
+dev/notebooks/*
+
 
