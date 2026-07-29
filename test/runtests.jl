@@ -563,3 +563,27 @@ end
         end
     end
 end
+
+@testset "threaded eigvals sweep matches direct eigvals" begin
+    qs = Complex{BigFloat}[0.0im, 0.25im, 0.5im, 1.0im]
+    N = 6
+    alphas = Float64[-0.5]
+    prec_bits = 128
+
+    for S in (HillFunctions.Even, HillFunctions.Odd)
+        qvec, vals = sweep_eigvals_threaded(S, qs, N, alphas; prec_bits)
+
+        Nout = S === HillFunctions.Odd ? N - 1 : N
+        @test qvec == qs
+        @test size(vals) == (Nout, length(qs))
+
+        for iq in eachindex(qs)
+            λ_direct = HillFunctions._with_precision(
+                () -> HillFunctions._eigvals_sorted(S, qs[iq], N, alphas),
+                prec_bits,
+            )
+
+            @test vals[:, iq] ≈ eltype(vals).(λ_direct)
+        end
+    end
+end

@@ -194,3 +194,55 @@ function collect_sweep_eigen_dense(
 
     return qvec, vals, vecs
 end
+
+"""
+    sweep_eigvals_threaded(::Type{S}, qs, N, alphas; prec_bits=nothing, progress=nothing)
+
+Eigenvalues-only sweep over `qs` (no eigenvectors computed), distributed across
+Julia threads via `Threads.@threads`. Each `q` is solved independently with
+`_eigvals_sorted`, exactly as in `even_eigvals`/`odd_eigvals` (`N` is passed
+straight through: output length is `N` for `Even`, `N-1` for `Odd`).
+
+Start Julia with more than one thread (`julia -t auto`, or set
+`JULIA_NUM_THREADS`) to see a speedup; with a single thread this reduces to a
+plain sequential loop.
+
+Returns `(qvec, vals)`:
+- `qvec` : copy of `qs`
+- `vals` : matrix of sorted eigenvalues, one column per `q` (size `N × nq` for
+  `Even`, `(N-1) × nq` for `Odd`)
+
+`progress`, if given, is called as `progress(iq, nq, q)` after each solve.
+Calls do not arrive in `iq` order under threading, so `progress` must not rely
+on ordering or mutate shared state without synchronization.
+"""
+function sweep_eigvals_threaded(
+    ::Type{S},
+    qs::AbstractVector{Q},
+    N::Integer,
+    alphas::AbstractVector;
+    prec_bits::Union{Nothing,Int} = nothing,
+    progress = nothing,
+) where {S<:Symmetry,Q}
+
+    nq = length(qs)
+    nq == 0 && throw(ArgumentError("qs must be non-empty"))
+
+    Rq = Q <: Real ? Q : real(Q)
+    R0 = promote_type(Rq, eltype(alphas))
+    Tr = _realfloat_type(R0)
+    T = (Q <: Real) ? Tr : Complex{Tr}
+
+    qvec = copy(qs)
+    Nout = (S === Odd) ? (N - 1) : N
+    vals = Matrix{T}(undef, Nout, nq)
+
+    Threads.@threads for iq = 1:nq
+        q = qvec[iq]
+        λ = _with_precision(() -> _eigvals_sorted(S, q, N, alphas), prec_bits)
+        vals[:, iq] .= T.(λ)
+        progress === nothing || progress(iq, nq, q)
+    end
+
+    return qvec, vals
+end
