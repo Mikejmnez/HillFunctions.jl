@@ -120,7 +120,7 @@ end
     q = Complex{BigFloat}(0, 1)
     alphas = BigFloat[0, 1, zeros(N-1)...]
 
-    vals, vecs = even_eigen(q, N, alphas; prec_bits = 256);
+    vals, vecs = even_eigen(q, N, alphas; prec_bits = 256)
 
     for j in axes(vecs, 2)
         nrm = bilinear_norm(@view vecs[:, j]; symmetry = :even)
@@ -133,7 +133,7 @@ end
     N = 6
     q = 1im
     alphas = [0, 1, zeros(N-1)...]
-    _, vecs = even_eigen(q, N, alphas);
+    _, vecs = even_eigen(q, N, alphas)
     # test only first rwo
     nrm = sum(x -> x * x, @view vecs[1, :])
     @test isapprox(nrm, 0.5 + 0.0im; atol = 1e-8, rtol = 1e-8)
@@ -145,7 +145,7 @@ end
     N = 6
     q = 1im
     alphas = [0, 1, zeros(N-1)...]
-    _, vecs = even_eigen(q, N, alphas);
+    _, vecs = even_eigen(q, N, alphas)
 
     target = one(eltype(vecs)) + 0im
 
@@ -160,7 +160,7 @@ end
     N = 6
     q = 1im
     alphas = [0, 1, zeros(N-1)...]
-    _, vecs = odd_eigen(q, N, alphas);
+    _, vecs = odd_eigen(q, N, alphas)
 
     target = one(eltype(vecs)) + 0im
 
@@ -296,10 +296,10 @@ end
     N = 25
     q = 100.0im
     alphas = [-0.5]
-    y = collect(range(0, π; length = 100));
+    y = collect(range(0, π; length = 100))
 
     _, V = even_eigen(q, N, alphas)
-    Phis_e = even_eigenfunctions(V, y);
+    Phis_e = even_eigenfunctions(V, y)
 
     R = size(V, 1)
     r = 0:(R-1)
@@ -323,10 +323,10 @@ end
     N = 25
     q = 100.0im
     alphas = [-0.5]
-    y = collect(range(0, π; length = 100));
+    y = collect(range(0, π; length = 100))
 
     _, V = odd_eigen(q, N, alphas)
-    Phis_o = odd_eigenfunctions(V, y);
+    Phis_o = odd_eigenfunctions(V, y)
 
     R = size(V, 1)
     r = 1:R
