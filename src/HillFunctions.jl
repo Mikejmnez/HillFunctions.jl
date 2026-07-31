@@ -26,7 +26,10 @@ export even_matrix,
     collect_sweep_eigen_dense,
     sweep_eigvals_threaded,
     sweep_even_eigenfunctions,
-    sweep_odd_eigenfunctions
-AbstractSweepWriter, write_step!, close_writer
+    sweep_odd_eigenfunctions,
+    correct_eigenvector,
+    AbstractSweepWriter,
+    write_step!,
+    close_writer
 
 end
