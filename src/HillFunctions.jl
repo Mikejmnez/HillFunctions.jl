@@ -10,8 +10,12 @@ include("normalize.jl")
 include("eigensolvers.jl")
 include("io_api.jl")
 include("sweep.jl")
+include("solve.jl")
 
 export HillSolution,
+    BoundaryCondition,
+    Neumann,
+    solve,
     even_matrix,
     odd_matrix,
     even_eigvals,
