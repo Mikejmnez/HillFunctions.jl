@@ -4,13 +4,15 @@ using SparseArrays
 using LinearAlgebra
 using GenericSchur
 
+include("types.jl")
 include("core.jl")
 include("normalize.jl")
 include("eigensolvers.jl")
 include("io_api.jl")
 include("sweep.jl")
 
-export even_matrix,
+export HillSolution,
+    even_matrix,
     odd_matrix,
     even_eigvals,
     odd_eigvals,
