@@ -587,3 +587,35 @@ end
         end
     end
 end
+
+@testset "solve for cosine f and Neumann bc" begin
+    y = range(0, 2π; length = 100)[1:(end-1)]
+    q = ComplexF64(0, 10)
+    Soln = solve(q, y, Neumann(), cos.(y))
+    bn, Φo = Soln.bn, Soln.Φo
+    @test bn == ComplexF64[]
+    @test Φo == Matrix{ComplexF64}(undef, 0, 0)
+end
+
+@testset "solve for sine f and Neumann bc" begin
+    y = range(0, 2π; length = 100)[1:(end-1)]
+    q = ComplexF64(0, 10)
+    Soln = solve(q, y, Neumann(), sin.(y))
+    bn, Φo = Soln.bn, Soln.Φo
+    @test bn == ComplexF64[]
+    @test Φo == Matrix{ComplexF64}(undef, 0, 0)
+end
+
+@testset "Test throws Argument error for cosine f and Dirichlet bc" begin
+    y = range(0, 2π; length = 100)[1:(end-1)]
+    q = ComplexF64(0, 10)
+    @test_throws ArgumentError solve(q, y, Dirichlet(), cos.(y))
+end
+@testset "solve for sine f and Dirichlet bc" begin
+    y = range(0, 2π; length = 100)[1:(end-1)]
+    q = ComplexF64(0, 10)
+    Soln = solve(q, y, Dirichlet(), sin.(y))
+    an, Φe = Soln.an, Soln.Φe
+    @test an == ComplexF64[]
+    @test Φe == Matrix{ComplexF64}(undef, 0, 0)
+end

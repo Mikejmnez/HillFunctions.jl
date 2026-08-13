@@ -16,6 +16,7 @@ include("solve.jl")
 export HillSolution,
     BoundaryCondition,
     Neumann,
+    Dirichlet,
     solve,
     even_matrix,
     odd_matrix,
