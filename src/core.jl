@@ -235,3 +235,33 @@ function sweep_odd_eigenfunctions(vecs::Vector{<:AbstractMatrix}, y::AbstractVec
     end
     return Φs
 end
+
+
+"""
+    _normal_mode_decomposition(f, y)
+
+`f` sampled on a 1D uniform, periodic, half-open grid `y` of length `2pi`.
+Returns `(a0, a, b)` for cosine/sine Fourier.
+"""
+function _normal_mode_decomposition(f::AbstractArray, y::AbstractVector; Lx::Real = 2pi)
+    N = length(f)
+    @assert length(y) == N
+    @assert N >= 2 "y must contain at least two points"
+    dy = y[2] - y[1]
+    @assert all(abs((y[i+1]-y[i]) - dy) < 1e-10 for i = 1:(N-1)) "y must be uniform"
+
+    # phase correction because FFT assumes samples at y = 0:dy:(N-1)dy
+    y0 = y[1]
+    ω0 = 2pi / Lx
+    # FFT on nonnegative frequencies
+    Fy = rfft(f)
+    nfreq = length(Fy)
+    phase = [exp(-1im * (k * ω0) * y0) for k = 0:(nfreq-1)]
+    Fy .*= phase
+
+    # series coefficient scaling
+    a0 = 2 .* real.(selectdim(Fy, 1, 1)) ./ N
+    a = 2 .* real.(selectdim(Fy, 1, 2:nfreq)) ./ N
+    b = -2 .* imag.(selectdim(Fy, 1, 2:nfreq)) ./ N
+    return a0, a, b
+end

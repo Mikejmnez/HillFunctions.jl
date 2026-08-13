@@ -1,4 +1,5 @@
 [deps]
+FFTW = "7a1cc6ca-52ef-59f5-83cd-3a7055c09341"
 HillFunctions = "515440f5-9b45-477f-8bae-317e58dd4532"
 IJulia = "7073ff75-c697-5162-941a-fcdaad2a7d2a"
 LaTeXStrings = "b964fa9f-0449-5b57-a5c2-d3ea65f4040f"

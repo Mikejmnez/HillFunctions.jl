@@ -3,6 +3,7 @@ module HillFunctions
 using SparseArrays
 using LinearAlgebra
 using GenericSchur
+using FFTW
 
 include("types.jl")
 include("core.jl")
