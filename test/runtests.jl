@@ -398,13 +398,25 @@ end
     # peak at position 6, m_max capped at 4: ceil(4 * 3.5 * sqrt(10)) = 45
     @test Rfun(q, N, [0.0, 0.0, 0.0, 0.0, 0.0, 1.0]) == 45
     # complex q, m_max = 2: ceil(2 * 3.5 * sqrt(20)) = 32
-    @test Rfun(10.0im, N, ComplexF64[0, 2, 1]) == 32
+    @test Rfun(10.0im, N, [0.0, 2.0, 1.0]) == 32
 
     # degenerate inputs fall back to the floor
     @test Rfun(0.0, N, [1.0]) == 10
     @test Rfun(1.0, N, Float64[]) == 10
     # clamp to N still applies after scaling
     @test Rfun(q, 20, [0.0, 0.0, 1.0]) == 20
+end
+
+
+@testset "complex alphas are rejected" begin
+    calphas = ComplexF64[1.0, 0.5]
+    q = 1.0im
+    N = 6
+    @test_throws MethodError even_eigvals(q, N, calphas)
+    @test_throws MethodError odd_eigen(q, N, calphas)
+    @test_throws MethodError adaptive_eigen(HillFunctions.Even, q, N, calphas)
+    @test_throws MethodError collect_sweep_eigen(HillFunctions.Odd, [q], N, calphas)
+    @test_throws MethodError HillFunctions._adaptive_R(q, N, calphas)
 end
 
 

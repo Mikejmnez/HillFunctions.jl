@@ -65,7 +65,7 @@ Eigenvalues for the EVEN matrix, sorted by (Re, Im, |λ|).
 function even_eigvals(
     q,
     N::Integer,
-    alphas::AbstractVector;
+    alphas::AbstractVector{<:Real};
     prec_bits::Union{Nothing,Int} = nothing,
 )
     _with_precision(() -> _eigvals_sorted(Even, q, N, alphas), prec_bits)
@@ -79,7 +79,7 @@ Eigenvalues for the ODD matrix, sorted by (Re, Im, |λ|).
 function odd_eigvals(
     q,
     N::Integer,
-    alphas::AbstractVector;
+    alphas::AbstractVector{<:Real};
     prec_bits::Union{Nothing,Int} = nothing,
 )
     _with_precision(() -> _eigvals_sorted(Odd, q, N, alphas), prec_bits)
@@ -97,7 +97,7 @@ Applies Mathieu conventions:
 function even_eigen(
     q,
     N::Integer,
-    alphas::AbstractVector;
+    alphas::AbstractVector{<:Real};
     prec_bits::Union{Nothing,Int} = nothing,
     Nmax::Union{Nothing,Int} = nothing,
 )
@@ -114,7 +114,7 @@ Applies bilinear normalization (no conjugation) with fac=1.
 function odd_eigen(
     q,
     N::Integer,
-    alphas::AbstractVector;
+    alphas::AbstractVector{<:Real};
     prec_bits::Union{Nothing,Int} = nothing,
     Nmax::Union{Nothing,Int} = nothing,
 )

@@ -12,7 +12,7 @@ function sweep_eigen(
     ::Type{S},
     qs,
     N::Integer,
-    alphas;
+    alphas::AbstractVector{<:Real};
     prec_bits::Union{Nothing,Int} = nothing,
     writer::Union{Nothing,AbstractSweepWriter} = nothing,
     progress = nothing,
@@ -31,7 +31,7 @@ function sweep_eigen(
 end
 
 
-function _adaptive_R(q, N::Integer, alphas::AbstractVector; G::Real = 7)
+function _adaptive_R(q, N::Integer, alphas::AbstractVector{<:Real}; G::Real = 7)
     Rq = q isa Real ? typeof(q) : real(typeof(q))
     R0 = promote_type(Rq, eltype(alphas))
     Tr = _realfloat_type(R0)
@@ -78,7 +78,7 @@ function adaptive_eigen(
     ::Type{S},
     q,
     N::Integer,
-    alphas::AbstractVector;
+    alphas::AbstractVector{<:Real};
     prec_bits::Union{Nothing,Int} = nothing,
     G::Real = 7,
     Nmax::Union{Nothing,Int} = nothing,
@@ -124,7 +124,7 @@ function collect_sweep_eigen(
     ::Type{S},
     qs::AbstractVector{Q},
     N::Integer,
-    alphas::AbstractVector;
+    alphas::AbstractVector{<:Real};
     prec_bits::Union{Nothing,Int} = nothing,
     progress = nothing,
     G::Real = 7,
@@ -170,7 +170,7 @@ function collect_sweep_eigen_dense(
     ::Type{S},
     qs::AbstractVector{Q},
     N::Integer,
-    alphas::AbstractVector;
+    alphas::AbstractVector{<:Real};
     progress = nothing,
     prec_bits::Union{Nothing,Int} = nothing,
 ) where {S<:Symmetry,Q}
@@ -229,7 +229,7 @@ function sweep_eigvals_threaded(
     ::Type{S},
     qs::AbstractVector{Q},
     N::Integer,
-    alphas::AbstractVector;
+    alphas::AbstractVector{<:Real};
     prec_bits::Union{Nothing,Int} = nothing,
     progress = nothing,
 ) where {S<:Symmetry,Q}
