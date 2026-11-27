@@ -386,6 +386,28 @@ end
 end
 
 
+@testset "adaptive R scales with position of largest alpha (capped at 4)" begin
+    Rfun = HillFunctions._adaptive_R
+    N = 200
+    q = 10.0
+
+    # m_max = 1: ceil(1 * 3.5 * sqrt(10)) = 12
+    @test Rfun(q, N, [1.0, 0.5, 0.1]) == 12
+    # m_max = 3: ceil(3 * 3.5 * sqrt(10)) = 34
+    @test Rfun(q, N, [0.0, 0.0, 1.0, 0.5]) == 34
+    # peak at position 6, m_max capped at 4: ceil(4 * 3.5 * sqrt(10)) = 45
+    @test Rfun(q, N, [0.0, 0.0, 0.0, 0.0, 0.0, 1.0]) == 45
+    # complex q, m_max = 2: ceil(2 * 3.5 * sqrt(20)) = 32
+    @test Rfun(10.0im, N, ComplexF64[0, 2, 1]) == 32
+
+    # degenerate inputs fall back to the floor
+    @test Rfun(0.0, N, [1.0]) == 10
+    @test Rfun(1.0, N, Float64[]) == 10
+    # clamp to N still applies after scaling
+    @test Rfun(q, 20, [0.0, 0.0, 1.0]) == 20
+end
+
+
 @testset "adaptive eigen matches ragged sweep entries" begin
     alphas = Float64[-0.5]
     N = 12
