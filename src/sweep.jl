@@ -12,7 +12,7 @@ function sweep_eigen(
     ::Type{S},
     qs,
     N::Integer,
-    alphas;
+    alphas::AbstractVector{<:Real};
     prec_bits::Union{Nothing,Int} = nothing,
     writer::Union{Nothing,AbstractSweepWriter} = nothing,
     progress = nothing,
@@ -31,7 +31,7 @@ function sweep_eigen(
 end
 
 
-function _adaptive_R(q, N::Integer, alphas::AbstractVector; G::Real = 7)
+function _adaptive_R(q, N::Integer, alphas::AbstractVector{<:Real}; G::Real = 7)
     Rq = q isa Real ? typeof(q) : real(typeof(q))
     R0 = promote_type(Rq, eltype(alphas))
     Tr = _realfloat_type(R0)
@@ -40,11 +40,16 @@ function _adaptive_R(q, N::Integer, alphas::AbstractVector; G::Real = 7)
     RTa = Base.promote_op(abs, eltype(alphas))
     RT = promote_type(RTq, RTa, Tr)
 
-    amax = isempty(alphas) ? zero(RT) : RT(maximum(abs, alphas))
+    isempty(alphas) && return 10
+    amax_raw, imax = findmax(abs, alphas)
+    amax = RT(amax_raw)
     X = RT(abs(q)) * amax
     X == zero(RT) && return 10
 
-    R = ceil(Int, (RT(G) / RT(2)) * sqrt(X))
+    # 1-based position of the largest |alpha| (first one on ties), capped at 4
+    m_max = min(imax - firstindex(alphas) + 1, 4)
+
+    R = ceil(Int, m_max * (RT(G) / RT(2)) * sqrt(X))
     return clamp(R, 10, N)
 end
 
@@ -57,9 +62,11 @@ Compute one adaptive eigensolve using the same truncation policy as
 
 For the given `q`, chooses a truncation size `R` based on:
 
-    4R^2 >= G^2 * abs(q) * maximum(abs, alphas)
+    4R^2 >= m_max^2 * G^2 * abs(q) * maximum(abs, alphas)
 
-and clamps `R` to `10 <= R <= N`.
+where `m_max = min(m, 4)` and `m` is the 1-based position in `alphas` of the
+entry with the largest absolute value (the first one, on ties), and clamps `R`
+to `10 <= R <= N`.
 
 Then computes eigenpairs from an R-sized matrix:
 - Even: uses `N = R` (even_matrix is R×R)
@@ -71,7 +78,7 @@ function adaptive_eigen(
     ::Type{S},
     q,
     N::Integer,
-    alphas::AbstractVector;
+    alphas::AbstractVector{<:Real};
     prec_bits::Union{Nothing,Int} = nothing,
     G::Real = 7,
     Nmax::Union{Nothing,Int} = nothing,
@@ -96,9 +103,11 @@ Adaptive in-memory sweep.
 
 For each `q`, chooses a truncation size `R` based on:
 
-    4R^2 >= G^2 * abs(q) * maximum(abs, alphas)
+    4R^2 >= m_max^2 * G^2 * abs(q) * maximum(abs, alphas)
 
-and clamps `R` to `10 <= R <= N`.
+where `m_max = min(m, 4)` and `m` is the 1-based position in `alphas` of the
+entry with the largest absolute value (the first one, on ties), and clamps `R`
+to `10 <= R <= N`.
 
 Then computes eigenpairs from an R-sized matrix:
 - Even: uses `N = R` (even_matrix is R×R)
@@ -115,7 +124,7 @@ function collect_sweep_eigen(
     ::Type{S},
     qs::AbstractVector{Q},
     N::Integer,
-    alphas::AbstractVector;
+    alphas::AbstractVector{<:Real};
     prec_bits::Union{Nothing,Int} = nothing,
     progress = nothing,
     G::Real = 7,
@@ -161,7 +170,7 @@ function collect_sweep_eigen_dense(
     ::Type{S},
     qs::AbstractVector{Q},
     N::Integer,
-    alphas::AbstractVector;
+    alphas::AbstractVector{<:Real};
     progress = nothing,
     prec_bits::Union{Nothing,Int} = nothing,
 ) where {S<:Symmetry,Q}
@@ -220,7 +229,7 @@ function sweep_eigvals_threaded(
     ::Type{S},
     qs::AbstractVector{Q},
     N::Integer,
-    alphas::AbstractVector;
+    alphas::AbstractVector{<:Real};
     prec_bits::Union{Nothing,Int} = nothing,
     progress = nothing,
 ) where {S<:Symmetry,Q}

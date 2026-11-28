@@ -386,6 +386,33 @@ end
 end
 
 
+@testset "adaptive R scales with position of largest alpha (capped at 4)" begin
+    N = 200
+    q = 10.0
+
+    @test HillFunctions._adaptive_R(q, N, [1.0, 0.5, 0.1]) == 12
+    @test HillFunctions._adaptive_R(q, N, [0.0, 0.0, 1.0, 0.5]) == 34
+    @test HillFunctions._adaptive_R(q, N, [0.0, 0.0, 0.0, 0.0, 0.0, 1.0]) == 45
+    @test HillFunctions._adaptive_R(10.0im, N, [0.0, 2.0, 1.0]) == 32
+
+    @test HillFunctions._adaptive_R(0.0, N, [1.0]) == 10
+    @test HillFunctions._adaptive_R(1.0, N, Float64[]) == 10
+    @test HillFunctions._adaptive_R(q, 20, [0.0, 0.0, 1.0]) == 20
+end
+
+
+@testset "complex alphas are rejected" begin
+    calphas = ComplexF64[1.0, 0.5]
+    q = 1.0im
+    N = 6
+    @test_throws MethodError even_eigvals(q, N, calphas)
+    @test_throws MethodError odd_eigen(q, N, calphas)
+    @test_throws MethodError adaptive_eigen(HillFunctions.Even, q, N, calphas)
+    @test_throws MethodError collect_sweep_eigen(HillFunctions.Odd, [q], N, calphas)
+    @test_throws MethodError HillFunctions._adaptive_R(q, N, calphas)
+end
+
+
 @testset "adaptive eigen matches ragged sweep entries" begin
     alphas = Float64[-0.5]
     N = 12
@@ -451,28 +478,24 @@ end
         @test size(vecs) == (N, N, length(qs))
     end
 
-    # ---- Case 1: q :: Float64 -> outputs Float64
     qs_real64 = [0.1, 0.2]
     for S in (HillFunctions.Even, HillFunctions.Odd)
         check_ragged(S, qs_real64, Float64)
         check_dense(S, qs_real64, Float64)
     end
 
-    # ---- Case 2: q :: ComplexF64 -> outputs ComplexF64
     qs_c64 = ComplexF64[0.1im, 0.2im]
     for S in (HillFunctions.Even, HillFunctions.Odd)
         check_ragged(S, qs_c64, ComplexF64)
         check_dense(S, qs_c64, ComplexF64)
     end
 
-    # ---- Case 3: q :: BigFloat -> outputs BigFloat
     qs_realbig = BigFloat[big"0.1", big"0.2"]
     for S in (HillFunctions.Even, HillFunctions.Odd)
         check_ragged(S, qs_realbig, BigFloat)
         check_dense(S, qs_realbig, BigFloat)
     end
 
-    # ---- Case 4: q :: Complex{BigFloat} -> outputs Complex{BigFloat}
     qs_cbig = Complex{BigFloat}[Complex(big"0.0", big"0.1"), Complex(big"0.0", big"0.2")]
     for S in (HillFunctions.Even, HillFunctions.Odd)
         check_ragged(S, qs_cbig, Complex{BigFloat})
